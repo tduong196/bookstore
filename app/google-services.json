@@ -1,0 +1,125 @@
+{
+  "project_info": {
+    "project_number": "562228270607",
+    "firebase_url": "https://connectdb-18008-default-rtdb.firebaseio.com",
+    "project_id": "connectdb-18008",
+    "storage_bucket": "connectdb-18008.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562228270607:android:bcc69bc1c496b2dd28f57a",
+        "android_client_info": {
+          "package_name": "com.example.collectionphone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9rIWMzQ_1djA4POHnMeU6IYwSf9bSSrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562228270607:android:e5db8fe5e220449328f57a",
+        "android_client_info": {
+          "package_name": "com.example.connectdb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9rIWMzQ_1djA4POHnMeU6IYwSf9bSSrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562228270607:android:eaa51d725120388c28f57a",
+        "android_client_info": {
+          "package_name": "com.example.midterm_ltdd"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9rIWMzQ_1djA4POHnMeU6IYwSf9bSSrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562228270607:android:ee1154b50e46fe7c28f57a",
+        "android_client_info": {
+          "package_name": "com.example.test"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9rIWMzQ_1djA4POHnMeU6IYwSf9bSSrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562228270607:android:3ab6a7e6dee325c928f57a",
+        "android_client_info": {
+          "package_name": "com.example.testdkdn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9rIWMzQ_1djA4POHnMeU6IYwSf9bSSrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:562228270607:android:5915cd266f73d17528f57a",
+        "android_client_info": {
+          "package_name": "com.example.woof_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9rIWMzQ_1djA4POHnMeU6IYwSf9bSSrk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
