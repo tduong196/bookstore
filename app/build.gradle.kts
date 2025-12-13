@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,18 +8,25 @@ plugins {
     alias(libs.plugins.google.gms.google.services)
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
 android {
-    namespace = "com.example.testdkdn"
+    namespace = "com.bookstore"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.testdkdn"
+        applicationId = "com.bookstore"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["cloudinaryUrl"] = localProperties.getProperty("CLOUDINARY_URL") ?: ""
     }
 
     buildTypes {
@@ -68,7 +78,6 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-//    implementation("com.cloudinary:cloudinary-android:3.0.2")
     implementation("com.cloudinary:cloudinary-android:2.3.1")
     implementation("com.github.bumptech.glide:glide:4.16.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -76,10 +85,6 @@ dependencies {
     implementation("androidx.navigation:navigation-ui:2.7.7")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-//    implementation(libs.cloudinary) // Thêm thư viện Cloudinary
-//    implementation(libs.okhttp) // Thêm thư viện OkHttp (nếu chưa có)
-//    implementation("com.cloudinary:kotlin-url-gen:1.7.0")
-//    implementation("com.cloudinary:cloudinary-android:2.0.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0") // Bản mới nhất
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0") // (Tùy chọn) để log request
     implementation(libs.cloudinary)

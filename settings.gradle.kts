@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "testdkdn"
+rootProject.name = "BookStore"
 include(":app")
  
