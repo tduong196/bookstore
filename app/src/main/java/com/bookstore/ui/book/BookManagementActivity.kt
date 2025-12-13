@@ -33,6 +33,7 @@ import java.util.Locale
 
 class BookManagementActivity : ComponentActivity() {
     private val shouldReload = mutableStateOf(false)
+    private var isFirstResume = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,8 +51,13 @@ class BookManagementActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Đánh dấu cần reload khi quay lại activity
-        shouldReload.value = true
+        // Bỏ qua lần đầu tiên (ngay sau onCreate)
+        if (isFirstResume) {
+            isFirstResume = false
+        } else {
+            // Đánh dấu cần reload khi quay lại activity
+            shouldReload.value = true
+        }
     }
 }
 

@@ -27,9 +27,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Add API Keys to BuildConfig
+        // Cloudinary URL
         buildConfigField("String", "CLOUDINARY_URL", "\"${localProperties.getProperty("CLOUDINARY_URL") ?: ""}\"")
-        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties.getProperty("GEMINI_API_KEY") ?: ""}\"")
+        // GROQ API key
+        buildConfigField("String", "GROQ_API_KEY", "\"${localProperties.getProperty("GROQ_API_KEY") ?: ""}\"")
     }
 
     buildTypes {
