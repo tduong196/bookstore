@@ -57,7 +57,7 @@ class HomeActivity : ComponentActivity() {
 
     @Composable
     fun MainScreen(role: Int) {
-        var selectedIndex by remember { mutableStateOf(0) }
+        var selectedIndex by remember { mutableIntStateOf(0) }
         val isAdmin = role == 2
 
         Column(modifier = Modifier.fillMaxSize()) {

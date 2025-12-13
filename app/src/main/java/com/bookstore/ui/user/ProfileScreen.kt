@@ -154,15 +154,48 @@ fun ProfileScreen() {
                 ) {
                     Button(
                         onClick = {
-                            val intent = Intent(context, NotificationActivity::class.java)
+                            val intent = Intent(context, UserOrderHistoryActivity::class.java)
                             context.startActivity(intent)
                         },
                         modifier = Modifier
                             .fillMaxWidth(0.8f)
                             .height(48.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF546E7A)
+                        )
                     ) {
-                        Text("Xem đơn hàng")
+                        Icon(
+                            imageVector = Icons.Default.Receipt,
+                            contentDescription = "Đơn hàng",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Đơn hàng của tôi")
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            val intent = Intent(context, com.bookstore.ui.review.MyReviewsActivity::class.java)
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF7B1FA2)
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RateReview,
+                            contentDescription = "Đánh giá",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Đánh giá của tôi")
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))

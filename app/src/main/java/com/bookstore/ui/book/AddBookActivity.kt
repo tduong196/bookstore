@@ -19,16 +19,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.bookstore.data.model.Book
 import com.google.firebase.firestore.FirebaseFirestore
@@ -57,76 +64,223 @@ class AddBookActivity : ComponentActivity() {
                 imageUri = uri
             }
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .background(Color(0xFFF8F9FA))
             ) {
-                Button(onClick = {
-                    imagePickerLauncher.launch("image/*")
-                }) {
-                    Text(text = "Chọn ảnh")
-                }
-
-                imageUri?.let {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Image(
-                        painter = rememberAsyncImagePainter(it),
-                        contentDescription = "Ảnh đã chọn",
-                        modifier = Modifier.height(200.dp).fillMaxWidth()
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Nhập thông tin sách
-                TextField(value = title, onValueChange = { title = it }, label = { Text("Tên sách") })
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(
-                    value = price.toString(),
-                    onValueChange = { price = it.toDoubleOrNull() ?: 0.0 },
-                    label = { Text("Giá") }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(value = author, onValueChange = { author = it }, label = { Text("Tác giả") })
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(value = description, onValueChange = { description = it }, label = { Text("Mô tả") })
-                Spacer(modifier = Modifier.height(8.dp))
-                TextField(value = category, onValueChange = { category = it }, label = { Text("Thể loại") })
-                Spacer(modifier = Modifier.height(8.dp))
-//                TextField(
-//                    value = rating.toString(),
-//                    onValueChange = { rating = it.toDoubleOrNull() ?: 0.0 },
-//                    label = { Text("Đánh giá") }
-//                )
-
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(onClick = {
-                    if (imageUri != null && title.isNotEmpty() && author.isNotEmpty()) {
-                        uploadImageToCloudinary(imageUri!!) { url ->
-                            imageUrl = url
-                            val book = Book(
-                                title = title,
-                                author = author,
-                                description = description,
-                                category = category,
-                                rating = rating,
-                                image_url = imageUrl,
-                                price = price
-                            )
-                            saveBookToFirestore(book)
-                        }
-                    } else {
-                        Toast.makeText(this@AddBookActivity, "Vui lòng chọn ảnh và nhập đầy đủ thông tin sách", Toast.LENGTH_SHORT).show()
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Header
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color.White,
+                        shadowElevation = 2.dp
+                    ) {
+                        Text(
+                            text = "Thêm Sách Mới",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            modifier = Modifier.padding(24.dp)
+                        )
                     }
-                }) {
-                    Text("Lưu sách")
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Image Section
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(240.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (imageUri != null) {
+                                    Image(
+                                        painter = rememberAsyncImagePainter(imageUri),
+                                        contentDescription = "Ảnh đã chọn",
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = androidx.compose.material.icons.Icons.Default.Add,
+                                            contentDescription = "Add Image",
+                                            modifier = Modifier.size(48.dp),
+                                            tint = Color(0xFFB0BEC5)
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            "Chọn ảnh bìa",
+                                            color = Color(0xFF90A4AE),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color(0xFF546E7A)
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Choose Image",
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (imageUri != null) "Thay đổi ảnh" else "Chọn ảnh")
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Input Fields
+                        OutlinedTextField(
+                            value = title,
+                            onValueChange = { title = it },
+                            label = { Text("Tên sách") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF546E7A),
+                                unfocusedBorderColor = Color(0xFFCFD8DC)
+                            ),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = author,
+                            onValueChange = { author = it },
+                            label = { Text("Tác giả") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF546E7A),
+                                unfocusedBorderColor = Color(0xFFCFD8DC)
+                            ),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = category,
+                            onValueChange = { category = it },
+                            label = { Text("Thể loại") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF546E7A),
+                                unfocusedBorderColor = Color(0xFFCFD8DC)
+                            ),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = if (price == 0.0) "" else price.toString(),
+                            onValueChange = { price = it.toDoubleOrNull() ?: 0.0 },
+                            label = { Text("Giá (VNĐ)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF546E7A),
+                                unfocusedBorderColor = Color(0xFFCFD8DC)
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Mô tả") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF546E7A),
+                                unfocusedBorderColor = Color(0xFFCFD8DC)
+                            ),
+                            maxLines = 5
+                        )
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Save Button
+                        Button(
+                            onClick = {
+                                if (imageUri != null && title.isNotEmpty() && author.isNotEmpty()) {
+                                    uploadImageToCloudinary(imageUri!!) { url ->
+                                        imageUrl = url
+                                        val book = Book(
+                                            title = title,
+                                            author = author,
+                                            description = description,
+                                            category = category,
+                                            rating = rating,
+                                            image_url = imageUrl,
+                                            price = price
+                                        )
+                                        saveBookToFirestore(book)
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        this@AddBookActivity,
+                                        "Vui lòng chọn ảnh và nhập đầy đủ thông tin sách",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF546E7A)
+                            )
+                        ) {
+                            Text(
+                                "Lưu Sách",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                    }
                 }
             }
         }
