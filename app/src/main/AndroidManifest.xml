@@ -20,7 +20,7 @@
         tools:targetApi="31">
         <meta-data
             android:name="cloudinary_url"
-            android:value="cloudinary://469854791381627:9DHTsnT0dmoMuJbJrrmoSfSAs2k@dujmhnsee" />
+            android:value="${cloudinaryUrl}" />
 
         <activity
             android:name=".MainActivity"
