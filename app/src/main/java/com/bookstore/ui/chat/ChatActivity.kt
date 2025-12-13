@@ -146,7 +146,7 @@ suspend fun callGeminiAPI(prompt: String): String {
                 .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                 .build()
 
-            val apiKey = "AIzaSyC2PSJYpfTvH56-usHelYt51l0zIjZrnwc" // Lấy từ Google AI Studio
+            val apiKey = com.bookstore.BuildConfig.GEMINI_API_KEY
 
             val jsonObject = JSONObject().apply {
                 put("contents", JSONArray().apply {

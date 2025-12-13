@@ -26,7 +26,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["cloudinaryUrl"] = localProperties.getProperty("CLOUDINARY_URL") ?: ""
+
+        // Add API Keys to BuildConfig
+        buildConfigField("String", "CLOUDINARY_URL", "\"${localProperties.getProperty("CLOUDINARY_URL") ?: ""}\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"${localProperties.getProperty("GEMINI_API_KEY") ?: ""}\"")
     }
 
     buildTypes {
@@ -48,6 +51,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
     }
 }
 

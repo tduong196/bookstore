@@ -5,6 +5,7 @@ import android.util.Log
 import com.cloudinary.android.MediaManager
 import com.cloudinary.android.callback.ErrorInfo
 import com.cloudinary.android.callback.UploadCallback
+import androidx.core.net.toUri
 
 object CloudinaryManager {
     private var initialized = false
@@ -12,14 +13,28 @@ object CloudinaryManager {
     // Khởi tạo Cloudinary (chỉ gọi 1 lần khi app chạy)
     fun initCloudinary(context: Context) {
         if (!initialized) {
-            val config = mapOf(
-                "cloud_name" to "dujmhnsee",  // Thay bằng cloud_name của bạn
-                "api_key" to "469854791381627", // Thay bằng api_key của bạn
-                "api_secret" to "9DHTsnT0dmoMuJbJrrmoSfSAs2k" // Thay bằng api_secret của bạn
-            )
-            MediaManager.init(context, config)
-            initialized = true
-            Log.d("Cloudinary", "✅ Cloudinary đã được khởi tạo!")
+            try {
+                // Sử dụng CLOUDINARY_URL từ BuildConfig
+                val cloudinaryUrl = com.bookstore.BuildConfig.CLOUDINARY_URL
+
+                // Parse URL to extract cloud_name, api_key, api_secret
+                val uri = cloudinaryUrl.toUri()
+                val cloudName = uri.host
+                val apiKey = uri.userInfo?.split(":")?.get(0)
+                val apiSecret = uri.userInfo?.split(":")?.get(1)
+
+                val config = mapOf(
+                    "cloud_name" to cloudName,
+                    "api_key" to apiKey,
+                    "api_secret" to apiSecret
+                )
+
+                MediaManager.init(context, config)
+                initialized = true
+                Log.d("Cloudinary", "✅ Cloudinary đã được khởi tạo!")
+            } catch (e: Exception) {
+                Log.e("Cloudinary", "❌ Lỗi khởi tạo Cloudinary: ${e.message}")
+            }
         }
     }
 
