@@ -137,11 +137,54 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                     onClick = {
                         scope.launch {
                             try {
-                                firestore.collection("books").document(book.id)
+                                val bookId = book.id
+
+                                // Bước 1: Xóa tất cả reviews của sách này
+                                firestore.collection("reviews")
+                                    .whereEqualTo("bookId", bookId)
+                                    .get()
+                                    .addOnSuccessListener { reviewSnapshot ->
+                                        val batch = firestore.batch()
+                                        reviewSnapshot.documents.forEach { doc ->
+                                            batch.delete(doc.reference)
+                                        }
+                                        batch.commit()
+                                    }
+
+                                // Bước 2: Xóa/cập nhật đơn hàng có chứa sách này
+                                firestore.collection("orders")
+                                    .get()
+                                    .addOnSuccessListener { orderSnapshot ->
+                                        orderSnapshot.documents.forEach { doc ->
+                                            val items = doc.get("items") as? List<*>
+                                            items?.let { itemList ->
+                                                val updatedItems = itemList.mapNotNull { item ->
+                                                    (item as? Map<*, *>)?.let { map ->
+                                                        if (map["bookId"] == bookId) {
+                                                            null // Xóa item này
+                                                        } else {
+                                                            map // Giữ lại item này
+                                                        }
+                                                    }
+                                                }
+
+                                                // Nếu đơn hàng không còn item nào, xóa đơn hàng
+                                                if (updatedItems.isEmpty()) {
+                                                    doc.reference.delete()
+                                                } else if (updatedItems.size < itemList.size) {
+                                                    // Nếu có item bị xóa, cập nhật lại đơn hàng
+                                                    doc.reference.update("items", updatedItems)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                // Bước 3: Xóa sách
+                                firestore.collection("books").document(bookId)
                                     .delete()
                                     .addOnSuccessListener {
                                         onBookDeleted()
-                                        Toast.makeText(context, "Đã xóa sách thành công", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Đã xóa sách và các dữ liệu liên quan", Toast.LENGTH_SHORT).show()
                                     }
                                     .addOnFailureListener { e ->
                                         Toast.makeText(context, "Lỗi khi xóa sách: ${e.message}", Toast.LENGTH_SHORT).show()

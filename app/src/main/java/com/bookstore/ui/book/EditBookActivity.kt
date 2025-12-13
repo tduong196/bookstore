@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -104,88 +107,187 @@ fun EditBookScreen(
             }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F8FF))
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color(0xFFF8F9FA))
     ) {
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = title,
+        Column(
             modifier = Modifier
-                .height(250.dp)
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            contentScale = ContentScale.Fit
-        )
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Header
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 2.dp
+            ) {
+                Text(
+                    text = "Chỉnh Sửa Sách",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    modifier = Modifier.padding(24.dp)
+                )
+            }
 
-        OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Tên sách") })
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(value = author, onValueChange = { author = it }, label = { Text("Tác giả") })
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Thể loại") })
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (isPriceLoading) {
-            // Nếu đang tải giá thì hiển thị loading nhỏ
-            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-        } else {
-            OutlinedTextField(
-                value = price.toString(),
-                onValueChange = { newVal -> price = newVal.toDoubleOrNull() ?: price },
-                label = { Text("Giá") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text("Mô tả") },
-            modifier = Modifier.height(120.dp),
-            maxLines = 6
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                val ratingValue = try {
-                    rating.toDouble()
-                } catch (e: NumberFormatException) {
-                    0.0
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Image Section
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    AsyncImage(
+                        model = imageUrl,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
                 }
 
-                val updatedBook = hashMapOf(
-                    "title" to title,
-                    "author" to author,
-                    "description" to description,
-                    "category" to category,
-                    "rating" to ratingValue,
-                    "image_url" to imageUrl,
-                    "price" to price
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Input Fields
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Tên sách") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF546E7A),
+                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                    ),
+                    singleLine = true
                 )
 
-                db.collection("books")
-                    .document(documentId)
-                    .set(updatedBook, SetOptions.merge())
-                    .addOnSuccessListener { onUpdateSuccess() }
-                    .addOnFailureListener { onUpdateFail() }
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0077B6)),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-        ) {
-            Text("Lưu chỉnh sửa", fontSize = 16.sp, color = Color.White)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = author,
+                    onValueChange = { author = it },
+                    label = { Text("Tác giả") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF546E7A),
+                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                    ),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Thể loại") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF546E7A),
+                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                    ),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (isPriceLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color(0xFF546E7A)
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = if (price == 0.0) "" else price.toString(),
+                        onValueChange = { newVal -> price = newVal.toDoubleOrNull() ?: price },
+                        label = { Text("Giá (VNĐ)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF546E7A),
+                            unfocusedBorderColor = Color(0xFFCFD8DC)
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Mô tả") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF546E7A),
+                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                    ),
+                    maxLines = 5
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Save Button
+                Button(
+                    onClick = {
+                        val ratingValue = try {
+                            rating.toDouble()
+                        } catch (e: NumberFormatException) {
+                            0.0
+                        }
+
+                        val updatedBook = hashMapOf(
+                            "title" to title,
+                            "author" to author,
+                            "description" to description,
+                            "category" to category,
+                            "rating" to ratingValue,
+                            "image_url" to imageUrl,
+                            "price" to price
+                        )
+
+                        db.collection("books")
+                            .document(documentId)
+                            .set(updatedBook, SetOptions.merge())
+                            .addOnSuccessListener { onUpdateSuccess() }
+                            .addOnFailureListener { onUpdateFail() }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF546E7A)
+                    )
+                ) {
+                    Text(
+                        "Lưu Chỉnh Sửa",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -25,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bookstore.R
@@ -74,7 +76,17 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf("") }
+    var showSuccessDialog by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+
+    // Validate password
+    fun validatePassword(pwd: String): String {
+        return when {
+            pwd.length < 6 -> "Mật khẩu phải có ít nhất 6 ký tự"
+            else -> ""
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Hình nền từ drawable
@@ -165,7 +177,10 @@ fun RegisterScreen(
                     // Password Field
                     OutlinedTextField(
                         value = password,
-                        onValueChange = { password = it },
+                        onValueChange = {
+                            password = it
+                            passwordError = validatePassword(it)
+                        },
                         label = { Text("Mật khẩu") },
                         leadingIcon = {
                             Icon(
@@ -180,7 +195,21 @@ fun RegisterScreen(
                         ),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        isError = passwordError.isNotEmpty(),
+                        supportingText = {
+                            if (passwordError.isNotEmpty()) {
+                                Text(
+                                    text = passwordError,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            } else {
+                                Text(
+                                    text = "Tối thiểu 6 ký tự",
+                                    color = Color.Gray
+                                )
+                            }
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -211,13 +240,18 @@ fun RegisterScreen(
                     // Register Button
                     Button(
                         onClick = {
-                            if (password != confirmPassword) {
-                                Toast.makeText(context, "Mật khẩu không khớp", Toast.LENGTH_SHORT).show()
+                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                                Toast.makeText(context, "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
 
-                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
-                                Toast.makeText(context, "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show()
+                            if (passwordError.isNotEmpty()) {
+                                Toast.makeText(context, passwordError, Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            if (password != confirmPassword) {
+                                Toast.makeText(context, "Mật khẩu không khớp", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
 
@@ -239,14 +273,11 @@ fun RegisterScreen(
                                                     db.collection("users").document(userEmail)
                                                         .set(userData)
                                                         .addOnSuccessListener {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Đăng ký thành công",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                            onRegisterSuccess()
+                                                            isLoading = false
+                                                            showSuccessDialog = true
                                                         }
                                                         .addOnFailureListener { e ->
+                                                            isLoading = false
                                                             Toast.makeText(
                                                                 context,
                                                                 "Lỗi lưu thông tin: ${e.message}",
@@ -299,6 +330,49 @@ fun RegisterScreen(
                     }
                 }
             }
+        }
+
+        // Success Dialog
+        if (showSuccessDialog) {
+            AlertDialog(
+                onDismissRequest = { },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showSuccessDialog = false
+                            onRegisterSuccess()
+                        },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Tiếp tục")
+                    }
+                },
+                title = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Success",
+                            tint = Color(0xFF4CAF50),
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            "Đăng ký thành công!",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                text = {
+                    Text(
+                        "Chào mừng bạn đến với Bookstore. Bạn có thể bắt đầu khám phá các cuốn sách ngay bây giờ!",
+                        textAlign = TextAlign.Center
+                    )
+                },
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
 }

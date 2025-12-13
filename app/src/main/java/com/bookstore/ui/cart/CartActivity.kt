@@ -73,13 +73,17 @@ fun CartScreen() {
             }
     }
 
-    // Cập nhật giỏ hàng với giá từ Firestore khi đã có dữ liệu
+    // Cập nhật giỏ hàng với giá và ID từ Firestore khi đã có dữ liệu
     val updatedCartItems = remember(cartItems, firestoreBooks) {
         if (isFirestoreLoaded) {
             cartItems.map { cartBook ->
                 firestoreBooks.find { it.title == cartBook.title }?.let { matchedBook ->
-                    cartBook.copy(price = matchedBook.price).also {
-                        Log.d("CartUpdate", "Cập nhật giá cho ${cartBook.title}: ${matchedBook.price}")
+                    cartBook.copy(
+                        id = matchedBook.id, // Lấy bookId từ Firestore
+                        price = matchedBook.price,
+                        image_url = matchedBook.image_url // Đảm bảo có image_url
+                    ).also {
+                        Log.d("CartUpdate", "Cập nhật sách ${cartBook.title}: ID=${matchedBook.id}, giá=${matchedBook.price}")
                     }
                 } ?: cartBook.also {
                     Log.w("CartUpdate", "Không tìm thấy sách tương ứng cho ${cartBook.title}")
@@ -175,29 +179,44 @@ fun CartScreen() {
                     return@CheckoutSummary
                 }
 
-                // Kiểm tra lại giá trước khi đặt hàng
+                // Kiểm tra lại giá và bookId trước khi đặt hàng
                 finalCart.forEach { item ->
                     if (item.price <= 0) {
                         Toast.makeText(context, "Giá sản phẩm ${item.title} không hợp lệ!", Toast.LENGTH_SHORT).show()
                         return@CheckoutSummary
                     }
+                    if (item.id.isBlank()) {
+                        Toast.makeText(context, "Không tìm thấy ID sản phẩm ${item.title}. Vui lòng thử lại!", Toast.LENGTH_SHORT).show()
+                        Log.e("OrderError", "BookId trống cho sách: ${item.title}")
+                        return@CheckoutSummary
+                    }
+                }
+
+                Log.d("OrderDebug", "Tạo đơn hàng với ${finalCart.size} sản phẩm")
+                finalCart.forEach { item ->
+                    Log.d("OrderDebug", "Sản phẩm: ${item.title}, ID: ${item.id}, Giá: ${item.price}")
                 }
 
                 val orderData = mapOf(
                     "userId" to user?.uid,
                     "userEmail" to user?.email,
+                    "userName" to user?.displayName,
                     "phone" to phone,
                     "address" to address,
                     "items" to finalCart.map {
                         mapOf(
+                            "bookId" to it.id,
                             "title" to it.title,
                             "quantity" to it.quantity,
                             "price" to it.price,
+                            "imageUrl" to it.image_url,
                             "total" to (it.price * it.quantity)
                         )
                     },
                     "totalAmount" to finalCart.sumOf { it.price * it.quantity },
-                    "timestamp" to System.currentTimeMillis()
+                    "timestamp" to System.currentTimeMillis(),
+                    "status" to "PENDING",
+                    "reviewed" to false
                 )
 
                 Firebase.firestore.collection("orders")

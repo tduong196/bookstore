@@ -14,7 +14,18 @@ object CartManager {
         val editor = prefs.edit()
 
         val currentCart = getCart(context).toMutableList()
-        currentCart.add(book)
+
+        // Kiểm tra xem sản phẩm đã có trong giỏ chưa
+        val existingIndex = currentCart.indexOfFirst { it.title == book.title }
+
+        if (existingIndex != -1) {
+            // Nếu có rồi thì tăng số lượng
+            val existingBook = currentCart[existingIndex]
+            currentCart[existingIndex] = existingBook.copy(quantity = existingBook.quantity + 1)
+        } else {
+            // Nếu chưa có thì thêm mới với quantity = 1
+            currentCart.add(book.copy(quantity = 1))
+        }
 
         val json = Gson().toJson(currentCart)
         editor.putString(CART_KEY, json)
@@ -47,7 +58,7 @@ object CartManager {
     // Thêm vào CartManager.kt
     fun updateQuantity(context: Context, book: Book, newQuantity: Int) {
         val currentCart = getCart(context).toMutableList()
-        val index = currentCart.indexOfFirst { it.id == book.id }
+        val index = currentCart.indexOfFirst { it.title == book.title }
         if (index != -1) {
             currentCart[index] = book.copy(quantity = newQuantity)
             saveCart(context, currentCart)
