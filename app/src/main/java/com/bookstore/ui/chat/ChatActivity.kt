@@ -26,6 +26,10 @@ import okhttp3.MediaType.Companion.toMediaType
 import org.json.JSONArray
 import org.json.JSONObject
 import com.bookstore.BuildConfig
+import com.bookstore.data.model.Book
+import com.google.firebase.firestore.FirebaseFirestore
+import java.text.NumberFormat
+import java.util.Locale
 
 class ChatActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,11 +45,29 @@ class ChatActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen() {
-    var messages by remember { mutableStateOf(listOf("AI: Xin chào! Tôi có thể giúp gì cho bạn?")) }
+    var messages by remember { mutableStateOf(listOf("AI: Xin chào! Tôi có thể giúp bạn tìm sách hoặc tư vấn về các đầu sách trong cửa hàng.")) }
     var userInput by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var books by remember { mutableStateOf(listOf<Book>()) }
+    var booksLoaded by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+
+    // Load books from Firestore
+    LaunchedEffect(Unit) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("books")
+            .get()
+            .addOnSuccessListener { result ->
+                books = result.documents.mapNotNull { doc ->
+                    doc.toObject(Book::class.java)?.apply { id = doc.id }
+                }
+                booksLoaded = true
+            }
+            .addOnFailureListener { e ->
+                messages = messages + "AI: Lỗi khi tải dữ liệu sách: ${e.message}"
+            }
+    }
 
     Column(
         modifier = Modifier
@@ -161,7 +183,7 @@ fun ChatScreen() {
 
             IconButton(
                 onClick = {
-                    if (userInput.isNotBlank() && !isLoading) {
+                    if (userInput.isNotBlank() && !isLoading && booksLoaded) {
                         val question = userInput.trim()
                         val newMessage = "Bạn: $question"
                         messages = messages + newMessage
@@ -170,7 +192,7 @@ fun ChatScreen() {
 
                         scope.launch {
                             try {
-                                val aiResponse = callGroqAPI(question)
+                                val aiResponse = callGroqAPIWithBooks(question, books)
                                 messages = messages + "AI: $aiResponse"
                             } catch (e: Exception) {
                                 messages = messages + "AI: Xin lỗi, đã có lỗi: ${e.message}"
@@ -180,19 +202,19 @@ fun ChatScreen() {
                         }
                     }
                 },
-                enabled = userInput.isNotBlank() && !isLoading
+                enabled = userInput.isNotBlank() && !isLoading && booksLoaded
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "Gửi",
-                    tint = if (userInput.isNotBlank() && !isLoading) Color(0xFF0077B6) else Color.Gray
+                    tint = if (userInput.isNotBlank() && !isLoading && booksLoaded) Color(0xFF0077B6) else Color.Gray
                 )
             }
         }
     }
 }
 
-suspend fun callGroqAPI(prompt: String): String {
+suspend fun callGroqAPIWithBooks(prompt: String, books: List<Book>): String {
     return withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder()
@@ -214,12 +236,44 @@ suspend fun callGroqAPI(prompt: String): String {
                 """.trimIndent()
             }
 
+            // Tạo context từ danh sách sách
+            val booksContext = buildString {
+                appendLine("Dưới đây là danh sách sách hiện có trong cửa hàng:")
+                books.forEachIndexed { index, book ->
+                    val formatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
+                    appendLine("\n${index + 1}. Tên: ${book.title}")
+                    appendLine("   Tác giả: ${book.author}")
+                    appendLine("   Thể loại: ${book.category}")
+                    appendLine("   Mô tả: ${book.description}")
+                    appendLine("   Giá: ${formatter.format(book.price)}")
+                    appendLine("   Đánh giá: ${book.rating}/5.0")
+                    appendLine("   Số lượng còn: ${book.quantity}")
+                }
+            }
+
+            val systemPrompt = """
+                Bạn là trợ lý AI của cửa hàng sách Bookstore.
+                QUAN TRỌNG: Bạn chỉ được trả lời các câu hỏi liên quan đến:
+                - Gợi ý sách trong cửa hàng
+                - Thông tin chi tiết về sách (giá, tác giả, mô tả, đánh giá)
+                - So sánh các cuốn sách trong danh sách
+                - Tìm sách theo thể loại, tác giả, giá
+                - Khuyến nghị sách phù hợp với sở thích người dùng
+                
+                Nếu người dùng hỏi về chủ đề KHÔNG liên quan đến sách trong cửa hàng, 
+                hãy lịch sự từ chối và hướng dẫn họ hỏi về sách.
+                
+                $booksContext
+                
+                Hãy trả lời ngắn gọn, thân thiện và chính xác bằng tiếng Việt.
+            """.trimIndent()
+
             val jsonBody = JSONObject().apply {
                 put("model", "llama-3.3-70b-versatile")
                 put("messages", JSONArray().apply {
                     put(JSONObject().apply {
                         put("role", "system")
-                        put("content", "Bạn là trợ lý AI thân thiện, trả lời bằng tiếng Việt.")
+                        put("content", systemPrompt)
                     })
                     put(JSONObject().apply {
                         put("role", "user")
@@ -227,7 +281,7 @@ suspend fun callGroqAPI(prompt: String): String {
                     })
                 })
                 put("temperature", 0.7)
-                put("max_tokens", 500)
+                put("max_tokens", 800)
             }
 
             val requestBody = jsonBody.toString()
