@@ -1,9 +1,12 @@
 package com.bookstore.ui.user
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -48,8 +51,19 @@ fun UserOrderHistoryScreen() {
 
     var orders by remember { mutableStateOf<List<UserOrder>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(Unit) {
+    // Activity Result Launcher for ReviewActivity
+    val reviewLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Đánh giá thành công, refresh dữ liệu
+            refreshTrigger++
+        }
+    }
+
+    LaunchedEffect(refreshTrigger) {
         auth.currentUser?.email?.let { email ->
             db.collection("orders")
                 .whereEqualTo("userEmail", email)
@@ -153,15 +167,7 @@ fun UserOrderHistoryScreen() {
                     items(orders) { order ->
                         UserOrderCard(
                             order = order,
-                            onReviewClick = { bookId, bookTitle, imageUrl ->
-                                val intent = Intent(context, ReviewActivity::class.java).apply {
-                                    putExtra("orderId", order.id)
-                                    putExtra("bookId", bookId)
-                                    putExtra("bookTitle", bookTitle)
-                                    putExtra("bookImage", imageUrl)
-                                }
-                                context.startActivity(intent)
-                            }
+                            reviewLauncher = reviewLauncher
                         )
                     }
                 }
@@ -173,8 +179,9 @@ fun UserOrderHistoryScreen() {
 @Composable
 fun UserOrderCard(
     order: UserOrder,
-    onReviewClick: (String, String, String) -> Unit
+    reviewLauncher: androidx.activity.compose.ManagedActivityResultLauncher<Intent, androidx.activity.result.ActivityResult>
 ) {
+    val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.US) }
 
@@ -320,7 +327,13 @@ fun UserOrderCard(
                             // Cho phép đánh giá sản phẩm đầu tiên trong đơn
                             if (order.items.isNotEmpty()) {
                                 val firstItem = order.items[0]
-                                onReviewClick(firstItem.bookId, firstItem.title, firstItem.imageUrl)
+                                val intent = Intent(context, ReviewActivity::class.java).apply {
+                                    putExtra("orderId", order.id)
+                                    putExtra("bookId", firstItem.bookId)
+                                    putExtra("bookTitle", firstItem.title)
+                                    putExtra("bookImage", firstItem.imageUrl)
+                                }
+                                reviewLauncher.launch(intent)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(

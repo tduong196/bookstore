@@ -1,5 +1,6 @@
 package com.bookstore.ui.review
 
+import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -44,6 +45,7 @@ class ReviewActivity : ComponentActivity() {
                 bookImage = bookImage,
                 onReviewSubmitted = {
                     Toast.makeText(this, "Đánh giá của bạn đã được gửi thành công", Toast.LENGTH_LONG).show()
+                    setResult(RESULT_OK)
                     finish()
                 }
             )
