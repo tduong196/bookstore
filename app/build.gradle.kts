@@ -26,7 +26,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        manifestPlaceholders["cloudinaryUrl"] = localProperties.getProperty("CLOUDINARY_URL") ?: ""
+
+        // Cloudinary URL
+        buildConfigField("String", "CLOUDINARY_URL", "\"${localProperties.getProperty("CLOUDINARY_URL") ?: ""}\"")
+        // GROQ API key
+        buildConfigField("String", "GROQ_API_KEY", "\"${localProperties.getProperty("GROQ_API_KEY") ?: ""}\"")
     }
 
     buildTypes {
@@ -48,6 +52,7 @@ android {
     buildFeatures {
         compose = true
         viewBinding = true
+        buildConfig = true
     }
 }
 

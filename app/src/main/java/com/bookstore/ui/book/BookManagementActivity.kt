@@ -32,14 +32,31 @@ import java.text.NumberFormat
 import java.util.Locale
 
 class BookManagementActivity : ComponentActivity() {
+    private val shouldReload = mutableStateOf(false)
+    private var isFirstResume = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             BookstoreTheme {
-                BookManagementScreen {
+                BookManagementScreen(
+                    shouldReload = shouldReload.value,
+                    onReloadComplete = { shouldReload.value = false }
+                ) {
                     finish() // Đóng activity khi nhấn back
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Bỏ qua lần đầu tiên (ngay sau onCreate)
+        if (isFirstResume) {
+            isFirstResume = false
+        } else {
+            // Đánh dấu cần reload khi quay lại activity
+            shouldReload.value = true
         }
     }
 }
@@ -47,7 +64,11 @@ class BookManagementActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 
 @Composable
-fun BookManagementScreen(onBack: () -> Unit) {
+fun BookManagementScreen(
+    shouldReload: Boolean = false,
+    onReloadComplete: () -> Unit = {},
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     val books = remember { mutableStateListOf<Book>() }
     val firestore = FirebaseFirestore.getInstance()
@@ -70,6 +91,14 @@ fun BookManagementScreen(onBack: () -> Unit) {
     // Load sách lần đầu
     LaunchedEffect(Unit) {
         loadBooks()
+    }
+
+    // Reload khi shouldReload thay đổi
+    LaunchedEffect(shouldReload) {
+        if (shouldReload) {
+            loadBooks()
+            onReloadComplete()
+        }
     }
 
     Scaffold(

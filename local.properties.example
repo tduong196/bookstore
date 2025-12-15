@@ -1,0 +1,12 @@
+# Location of the SDK. This is only used by Gradle.
+# For customization when using a Version Control System, please read the
+# header note.
+sdk.dir=YOUR_ANDROID_SDK_PATH
+
+# Cloudinary Config
+# Format: cloudinary://api_key:api_secret@cloud_name
+CLOUDINARY_URL=cloudinary://YOUR_API_KEY:YOUR_API_SECRET@YOUR_CLOUD_NAME
+
+# GROQ API Key
+# Get a free Groq API key at: https://console.groq.com/keys
+GROQ_API_KEY=YOUR_GROQ_API_KEY_HERE
