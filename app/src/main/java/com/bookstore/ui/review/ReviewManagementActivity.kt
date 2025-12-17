@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,6 +25,16 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.*
+
+/* ===== UI COLORS (HIỂN THỊ ONLY) ===== */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val ApproveColor = Color(0xFF2E7D32)
+private val RejectColor = Color(0xFFC62828)
+private val StarActive = Color(0xFFFFC107)
+private val StarInactive = Color(0xFFE0E0E0)
 
 class ReviewManagementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,16 +53,13 @@ fun ReviewManagementScreen() {
     var isLoading by remember { mutableStateOf(true) }
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // Lấy danh sách reviews
     LaunchedEffect(selectedTab) {
         isLoading = true
         val query = if (selectedTab == 0) {
-            // Chờ duyệt
             db.collection("reviews")
                 .whereEqualTo("approved", false)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
         } else {
-            // Đã duyệt
             db.collection("reviews")
                 .whereEqualTo("approved", true)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -70,29 +78,37 @@ fun ReviewManagementScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(BackgroundSoft)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
-            Surface(
+
+            /* ===== HEADER + TABS ===== */
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 2.dp
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                elevation = CardDefaults.cardElevation(6.dp)
             ) {
                 Column {
                     Text(
                         text = "Quản lý đánh giá",
                         style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.SemiBold
+                            fontWeight = FontWeight.Bold
                         ),
+                        color = GreenDark,
                         modifier = Modifier.padding(24.dp)
                     )
 
-                    // Tabs
                     TabRow(
                         selectedTabIndex = selectedTab,
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF546E7A)
+                        containerColor = CardColor,
+                        contentColor = GreenPrimary,
+                        indicator = { tabPositions ->
+                            TabRowDefaults.Indicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                color = GreenPrimary
+                            )
+                        }
                     ) {
                         Tab(
                             selected = selectedTab == 0,
@@ -108,47 +124,53 @@ fun ReviewManagementScreen() {
                 }
             }
 
-            // Content
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color(0xFF546E7A))
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = GreenPrimary)
+                    }
                 }
-            } else if (reviews.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (selectedTab == 0) "Không có đánh giá nào chờ duyệt" else "Chưa có đánh giá nào được duyệt",
-                        color = Color.Gray
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(reviews) { review ->
-                        ReviewCard(
-                            review = review,
-                            showActions = selectedTab == 0,
-                            onApprove = {
-                                db.collection("reviews").document(review.id)
-                                    .update("approved", true)
-                                    .addOnSuccessListener {
-                                        // Cập nhật rating trung bình cho sách
-                                        updateBookRating(db, review.bookId)
-                                    }
-                            },
-                            onReject = {
-                                db.collection("reviews").document(review.id)
-                                    .delete()
-                            }
+
+                reviews.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (selectedTab == 0)
+                                "Không có đánh giá nào chờ duyệt"
+                            else
+                                "Chưa có đánh giá nào được duyệt",
+                            color = Color.Gray
                         )
+                    }
+                }
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(reviews) { review ->
+                            ReviewCard(
+                                review = review,
+                                showActions = selectedTab == 0,
+                                onApprove = {
+                                    db.collection("reviews").document(review.id)
+                                        .update("approved", true)
+                                        .addOnSuccessListener {
+                                            updateBookRating(db, review.bookId)
+                                        }
+                                },
+                                onReject = {
+                                    db.collection("reviews").document(review.id).delete()
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -165,83 +187,59 @@ fun ReviewCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Book Title
+        Column(modifier = Modifier.padding(16.dp)) {
+
             Text(
                 text = review.bookTitle,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 ),
-                color = Color(0xFF212121)
+                color = GreenDark
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // User Info
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = review.userName,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = Color(0xFF424242)
+                    fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "• ${formatTimestamp(review.timestamp)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF757575)
+                    color = Color.Gray
                 )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Rating Stars
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 repeat(5) { index ->
                     Icon(
                         imageVector = Icons.Filled.Star,
                         contentDescription = null,
-                        tint = if (index < review.rating.toInt()) Color(0xFFFFC107) else Color(0xFFE0E0E0),
+                        tint = if (index < review.rating.toInt())
+                            StarActive else StarInactive,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = review.rating.toString(),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    )
-                )
+                Text(review.rating.toString(), fontWeight = FontWeight.Medium)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Comment
             Text(
                 text = review.comment,
-                style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF424242)
             )
 
             if (showActions) {
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // Action Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -249,15 +247,11 @@ fun ReviewCard(
                     OutlinedButton(
                         onClick = onReject,
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color(0xFFE53935)
+                            contentColor = RejectColor
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(14.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Reject",
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Icon(Icons.Default.Close, null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Từ chối")
                     }
@@ -267,15 +261,11 @@ fun ReviewCard(
                     Button(
                         onClick = onApprove,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50)
+                            containerColor = ApproveColor
                         ),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(14.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Approve",
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Icon(Icons.Default.Check, null)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Duyệt")
                     }
@@ -292,18 +282,19 @@ private fun formatTimestamp(timestamp: Long): String {
 }
 
 private fun updateBookRating(db: FirebaseFirestore, bookId: String) {
-    // Tính lại rating trung bình của sách
     db.collection("reviews")
         .whereEqualTo("bookId", bookId)
         .whereEqualTo("approved", true)
         .get()
         .addOnSuccessListener { snapshot ->
-            val reviews = snapshot.documents.mapNotNull { it.toObject(Review::class.java) }
+            val reviews = snapshot.documents.mapNotNull {
+                it.toObject(Review::class.java)
+            }
             if (reviews.isNotEmpty()) {
                 val avgRating = reviews.map { it.rating }.average()
-                db.collection("books").document(bookId)
+                db.collection("books")
+                    .document(bookId)
                     .update("rating", avgRating)
             }
         }
 }
-

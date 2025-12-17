@@ -25,6 +25,16 @@ import com.google.firebase.firestore.Query
 import java.text.SimpleDateFormat
 import java.util.*
 
+/* ===== UI COLORS (CHỈ HIỂN THỊ) ===== */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val ApprovedColor = Color(0xFF2E7D32)
+private val PendingColor = Color(0xFFFFA000)
+private val StarActive = Color(0xFFFFC107)
+private val StarInactive = Color(0xFFE0E0E0)
+
 class MyReviewsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,48 +70,57 @@ fun MyReviewsScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(BackgroundSoft)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Surface(
+
+            /* ===== HEADER ===== */
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 2.dp
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                elevation = CardDefaults.cardElevation(6.dp)
             ) {
                 Text(
                     text = "Đánh giá của tôi",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GreenDark,
                     modifier = Modifier.padding(24.dp)
                 )
             }
 
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color(0xFF546E7A))
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = GreenPrimary)
+                    }
                 }
-            } else if (reviews.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Bạn chưa có đánh giá nào",
-                        color = Color.Gray
-                    )
+
+                reviews.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Bạn chưa có đánh giá nào",
+                            color = Color.Gray
+                        )
+                    }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(reviews) { review ->
-                        MyReviewCard(review)
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(reviews) { review ->
+                            MyReviewCard(review)
+                        }
                     }
                 }
             }
@@ -113,17 +132,17 @@ fun MyReviewsScreen() {
 fun MyReviewCard(review: Review) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+
+            /* ===== HEADER ===== */
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -131,39 +150,26 @@ fun MyReviewCard(review: Review) {
             ) {
                 Text(
                     text = review.bookTitle,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = Color(0xFF212121),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GreenDark,
                     modifier = Modifier.weight(1f)
                 )
 
-                if (review.approved) {
-                    Surface(
-                        color = Color(0xFF4CAF50).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Đã duyệt",
-                            color = Color(0xFF4CAF50),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                } else {
-                    Surface(
-                        color = Color(0xFFFFA500).copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Chờ duyệt",
-                            color = Color(0xFFFFA500),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+                Surface(
+                    color = if (review.approved)
+                        ApprovedColor.copy(alpha = 0.15f)
+                    else
+                        PendingColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(999.dp)
+                ) {
+                    Text(
+                        text = if (review.approved) "Đã duyệt" else "Chờ duyệt",
+                        color = if (review.approved) ApprovedColor else PendingColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
                 }
             }
 
@@ -171,7 +177,7 @@ fun MyReviewCard(review: Review) {
 
             Text(
                 text = formatTimestamp(review.timestamp),
-                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
                 color = Color.Gray
             )
 
@@ -182,16 +188,17 @@ fun MyReviewCard(review: Review) {
                     Icon(
                         imageVector = Icons.Filled.Star,
                         contentDescription = null,
-                        tint = if (index < review.rating.toInt()) Color(0xFFFFC107) else Color(0xFFE0E0E0),
+                        tint = if (index < review.rating.toInt())
+                            StarActive
+                        else
+                            StarInactive,
                         modifier = Modifier.size(20.dp)
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = review.rating.toString(),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium
-                    )
+                    fontWeight = FontWeight.Medium
                 )
             }
 
@@ -199,7 +206,7 @@ fun MyReviewCard(review: Review) {
 
             Text(
                 text = review.comment,
-                style = MaterialTheme.typography.bodyMedium,
+                fontSize = 14.sp,
                 color = Color(0xFF424242),
                 lineHeight = 20.sp
             )
@@ -212,4 +219,3 @@ private fun formatTimestamp(timestamp: Long): String {
     val format = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     return format.format(date)
 }
-

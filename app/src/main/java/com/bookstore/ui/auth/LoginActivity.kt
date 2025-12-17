@@ -27,22 +27,31 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bookstore.R
+import com.bookstore.ui.home.HomeActivity
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
-import com.bookstore.R
-import com.bookstore.ui.home.HomeActivity
+/* ===================== COLOR PALETTE ===================== */
 
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val CardColor = Color(0xFFFDFCFB)
+private val TitleWhite = Color(0xFFFDFCFB)
+
+/* ===================== ACTIVITY ===================== */
 
 class LoginActivity : ComponentActivity() {
+
     private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         auth = Firebase.auth
         db = FirebaseFirestore.getInstance()
 
@@ -64,23 +73,22 @@ class LoginActivity : ComponentActivity() {
         currentUser?.email?.let { email ->
             db.collection("users").document(email)
                 .get()
-                .addOnSuccessListener { document ->
-                    val role = document.getLong("role")?.toInt() ?: 1
+                .addOnSuccessListener {
+                    val role = it.getLong("role")?.toInt() ?: 1
                     navigateToHome(role)
-                    finish()
                 }
                 .addOnFailureListener {
                     navigateToHome(1)
-                    finish()
                 }
         }
     }
 
     private fun navigateToHome(role: Int) {
-        val intent = Intent(this, HomeActivity::class.java).apply {
-            putExtra("ROLE", role)
-        }
-        startActivity(intent)
+        startActivity(
+            Intent(this, HomeActivity::class.java).apply {
+                putExtra("ROLE", role)
+            }
+        )
         finish()
     }
 
@@ -88,6 +96,8 @@ class LoginActivity : ComponentActivity() {
         startActivity(Intent(this, RegisterActivity::class.java))
     }
 }
+
+/* ===================== UI SCREEN ===================== */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,147 +107,185 @@ fun LoginScreen(
 ) {
     val context = LocalContext.current
     val auth = Firebase.auth
+    val scope = rememberCoroutineScope()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var showForgotPasswordDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
+    var showForgotDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
+
+        /* ===== BACKGROUND IMAGE ===== */
         Image(
             painter = painterResource(id = R.drawable.nenlogin),
-            contentDescription = "Login Background",
+            contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
 
+        /* ===== GREEN OVERLAY – HÒA NỀN ===== */
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.7f)
-                        ),
-                        startY = 0f,
-                        endY = Float.POSITIVE_INFINITY
+                        listOf(
+                            Color(0xFF2F4F3F).copy(alpha = 0.45f),
+                            Color(0xFF1E352B).copy(alpha = 0.75f)
+                        )
                     )
                 )
         )
 
+        /* ===== CONTENT ===== */
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(horizontal = 28.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
+            /* ===== TITLE ===== */
             Text(
-                text = "ĐĂNG NHẬP",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                ),
-                modifier = Modifier.padding(bottom = 40.dp)
+                text = "BookStore",
+                fontSize = 34.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = TitleWhite,
+                letterSpacing = 1.sp
             )
 
+            Text(
+                text = "Đăng nhập để tiếp tục",
+                fontSize = 15.sp,
+                color = TitleWhite.copy(alpha = 0.85f),
+                modifier = Modifier.padding(top = 6.dp, bottom = 28.dp)
+            )
+
+            /* ===== LOGIN CARD ===== */
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(8.dp)
+                shape = RoundedCornerShape(22.dp),
+                elevation = CardDefaults.cardElevation(12.dp),
+                colors = CardDefaults.cardColors(containerColor = CardColor)
             ) {
                 Column(
-                    modifier = Modifier
-                        .background(Color.White)
-                        .padding(24.dp),
+                    modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+
+                    /* EMAIL */
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
                         label = { Text("Email") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Email, contentDescription = null)
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        leadingIcon = { Icon(Icons.Default.Email, null) },
                         modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = GreenPrimary,
+                            unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                            focusedLabelColor = GreenPrimary,
+                            cursorColor = GreenPrimary
+                        )
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
 
+                    /* PASSWORD */
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
                         label = { Text("Mật khẩu") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Lock, contentDescription = null)
-                        },
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        leadingIcon = { Icon(Icons.Default.Lock, null) },
                         modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        visualTransformation = PasswordVisualTransformation(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = GreenPrimary,
+                            unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                            focusedLabelColor = GreenPrimary,
+                            cursorColor = GreenPrimary
+                        )
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(Modifier.height(8.dp))
 
                     TextButton(
-                        onClick = { showForgotPasswordDialog = true },
+                        onClick = { showForgotDialog = true },
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("Quên mật khẩu?", fontSize = 14.sp)
+                        Text(
+                            "Quên mật khẩu?",
+                            color = GreenPrimary,
+                            fontSize = 14.sp
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(Modifier.height(24.dp))
 
+                    /* LOGIN BUTTON */
                     Button(
                         onClick = {
-                            coroutineScope.launch {
+                            scope.launch {
                                 isLoading = true
-                                try {
-                                    auth.signInWithEmailAndPassword(email.trim(), password)
-                                        .addOnCompleteListener { task ->
-                                            if (task.isSuccessful) {
-                                                onLoginSuccess()
-                                            } else {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Đăng nhập thất bại: ${task.exception?.message}",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        }
-                                } finally {
+                                auth.signInWithEmailAndPassword(
+                                    email.trim(),
+                                    password
+                                ).addOnCompleteListener { task ->
                                     isLoading = false
+                                    if (task.isSuccessful) {
+                                        onLoginSuccess()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Đăng nhập thất bại",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 }
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
+                            .height(54.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GreenPrimary
+                        ),
                         enabled = !isLoading
                     ) {
                         if (isLoading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
                         } else {
-                            Text("ĐĂNG NHẬP", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                "ĐĂNG NHẬP",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(18.dp))
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("Chưa có tài khoản?")
                         TextButton(onClick = onRegisterClick) {
-                            Text("Đăng ký ngay", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Đăng ký",
+                                fontWeight = FontWeight.Bold,
+                                color = GreenPrimary
+                            )
                         }
                     }
                 }
@@ -245,79 +293,37 @@ fun LoginScreen(
         }
     }
 
-    // Dialog quên mật khẩu
-    if (showForgotPasswordDialog) {
-        var resetEmail by remember { mutableStateOf("") }
-        var isCheckingEmail by remember { mutableStateOf(false) }
-        var errorMessage by remember { mutableStateOf<String?>(null) }
-
+    /* ===== FORGOT PASSWORD ===== */
+    if (showForgotDialog) {
         AlertDialog(
-            onDismissRequest = { showForgotPasswordDialog = false },
+            onDismissRequest = { showForgotDialog = false },
             title = { Text("Đặt lại mật khẩu") },
             text = {
-                Column {
-                    OutlinedTextField(
-                        value = resetEmail,
-                        onValueChange = {
-                            resetEmail = it
-                            errorMessage = null
-                        },
-                        label = { Text("Nhập email của bạn") },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        isError = errorMessage != null,
-                        supportingText = {
-                            errorMessage?.let {
-                                Text(text = it, color = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    )
-                }
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (resetEmail.isBlank()) {
-                            errorMessage = "Email không được để trống"
-                            return@TextButton
-                        }
-
-                        coroutineScope.launch {
-                            isCheckingEmail = true
-                            try {
-                                Firebase.auth.sendPasswordResetEmail(resetEmail.trim())
-                                    .addOnCompleteListener { task ->
-                                        if (task.isSuccessful) {
-                                            Toast.makeText(
-                                                context,
-                                                "Email đặt lại mật khẩu đã được gửi",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            showForgotPasswordDialog = false
-                                        } else {
-                                            errorMessage = "Không gửi được email: ${task.exception?.message}"
-                                        }
-                                    }
-                            } finally {
-                                isCheckingEmail = false
-                            }
-                        }
-                    },
-                    enabled = !isCheckingEmail
-                ) {
-                    if (isCheckingEmail) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                    } else {
-                        Text("Gửi")
-                    }
+                TextButton(onClick = {
+                    Firebase.auth.sendPasswordResetEmail(email.trim())
+                    Toast.makeText(
+                        context,
+                        "Đã gửi email đặt lại mật khẩu",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    showForgotDialog = false
+                }) {
+                    Text("Gửi")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showForgotPasswordDialog = false }) {
+                TextButton(onClick = { showForgotDialog = false }) {
                     Text("Hủy")
                 }
             }
         )
     }
 }
-//

@@ -31,6 +31,14 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
+/* ================= UI COLORS (HIỂN THỊ) ================= */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val BlueView = Color(0xFF4A90E2)
+private val YellowEdit = Color(0xFFFFC107)
+
 class BookManagementActivity : ComponentActivity() {
     private val shouldReload = mutableStateOf(false)
     private var isFirstResume = true
@@ -43,7 +51,7 @@ class BookManagementActivity : ComponentActivity() {
                     shouldReload = shouldReload.value,
                     onReloadComplete = { shouldReload.value = false }
                 ) {
-                    finish() // Đóng activity khi nhấn back
+                    finish()
                 }
             }
         }
@@ -51,18 +59,15 @@ class BookManagementActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Bỏ qua lần đầu tiên (ngay sau onCreate)
         if (isFirstResume) {
             isFirstResume = false
         } else {
-            // Đánh dấu cần reload khi quay lại activity
             shouldReload.value = true
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-
 @Composable
 fun BookManagementScreen(
     shouldReload: Boolean = false,
@@ -73,7 +78,6 @@ fun BookManagementScreen(
     val books = remember { mutableStateListOf<Book>() }
     val firestore = FirebaseFirestore.getInstance()
 
-    // Hàm load lại danh sách sách
     fun loadBooks() {
         firestore.collection("books")
             .get()
@@ -88,12 +92,10 @@ fun BookManagementScreen(
             }
     }
 
-    // Load sách lần đầu
     LaunchedEffect(Unit) {
         loadBooks()
     }
 
-    // Reload khi shouldReload thay đổi
     LaunchedEffect(shouldReload) {
         if (shouldReload) {
             loadBooks()
@@ -104,16 +106,24 @@ fun BookManagementScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Quản lý Sách") },
+                title = {
+                    Text(
+                        "Quản lý Sách",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Quay lại"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFF0077B6),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = CardColor,
+                    titleContentColor = GreenDark,
+                    navigationIconContentColor = GreenDark
                 )
             )
         },
@@ -123,7 +133,7 @@ fun BookManagementScreen(
                     val intent = Intent(context, AddBookActivity::class.java)
                     context.startActivity(intent)
                 },
-                containerColor = Color(0xFF0077B6),
+                containerColor = GreenPrimary,
                 contentColor = Color.White
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Thêm sách")
@@ -134,13 +144,13 @@ fun BookManagementScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(Color(0xFFE3F2FD))
+                .background(BackgroundSoft)
         ) {
             items(books) { book ->
                 BookItemAdmin(
                     book = book,
                     context = context,
-                    onBookDeleted = { loadBooks() } // Load lại danh sách khi xóa thành công
+                    onBookDeleted = { loadBooks() }
                 )
             }
         }
@@ -148,18 +158,21 @@ fun BookManagementScreen(
 }
 
 @Composable
-fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: () -> Unit) {
+fun BookItemAdmin(
+    book: Book,
+    context: android.content.Context,
+    onBookDeleted: () -> Unit
+) {
     val formatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
     val formattedPrice = formatter.format(book.price)
     val firestore = FirebaseFirestore.getInstance()
     val scope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Dialog xác nhận xóa
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Xác nhận xóa") },
+            title = { Text("Xác nhận xóa", fontWeight = FontWeight.Bold) },
             text = { Text("Bạn có chắc chắn muốn xóa sách '${book.title}'?") },
             confirmButton = {
                 Button(
@@ -168,7 +181,6 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                             try {
                                 val bookId = book.id
 
-                                // Bước 1: Xóa tất cả reviews của sách này
                                 firestore.collection("reviews")
                                     .whereEqualTo("bookId", bookId)
                                     .get()
@@ -180,7 +192,6 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                                         batch.commit()
                                     }
 
-                                // Bước 2: Xóa/cập nhật đơn hàng có chứa sách này
                                 firestore.collection("orders")
                                     .get()
                                     .addOnSuccessListener { orderSnapshot ->
@@ -189,37 +200,34 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                                             items?.let { itemList ->
                                                 val updatedItems = itemList.mapNotNull { item ->
                                                     (item as? Map<*, *>)?.let { map ->
-                                                        if (map["bookId"] == bookId) {
-                                                            null // Xóa item này
-                                                        } else {
-                                                            map // Giữ lại item này
-                                                        }
+                                                        if (map["bookId"] == bookId) null else map
                                                     }
                                                 }
-
-                                                // Nếu đơn hàng không còn item nào, xóa đơn hàng
                                                 if (updatedItems.isEmpty()) {
                                                     doc.reference.delete()
                                                 } else if (updatedItems.size < itemList.size) {
-                                                    // Nếu có item bị xóa, cập nhật lại đơn hàng
                                                     doc.reference.update("items", updatedItems)
                                                 }
                                             }
                                         }
                                     }
 
-                                // Bước 3: Xóa sách
                                 firestore.collection("books").document(bookId)
                                     .delete()
                                     .addOnSuccessListener {
                                         onBookDeleted()
-                                        Toast.makeText(context, "Đã xóa sách và các dữ liệu liên quan", Toast.LENGTH_SHORT).show()
-                                    }
-                                    .addOnFailureListener { e ->
-                                        Toast.makeText(context, "Lỗi khi xóa sách: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Đã xóa sách và các dữ liệu liên quan",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Lỗi: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Lỗi: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                             showDeleteDialog = false
                         }
@@ -230,9 +238,7 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
+                TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Hủy")
                 }
             }
@@ -242,8 +248,10 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
         Row(
             modifier = Modifier
@@ -251,12 +259,13 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             AsyncImage(
                 model = book.image_url,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(12.dp))
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -267,7 +276,8 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                 Text(
                     text = book.title,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = GreenDark
                 )
                 Text(
                     text = "Tác giả: ${book.author}",
@@ -276,7 +286,8 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                 )
                 Text(
                     text = "Giá: $formattedPrice",
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = GreenPrimary
                 )
             }
 
@@ -298,7 +309,7 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                     Icon(
                         Icons.Default.Visibility,
                         contentDescription = "Xem",
-                        tint = Color(0xFF0077B6)
+                        tint = BlueView
                     )
                 }
 
@@ -320,7 +331,7 @@ fun BookItemAdmin(book: Book, context: android.content.Context, onBookDeleted: (
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = "Sửa",
-                        tint = Color(0xFFFFC107)
+                        tint = YellowEdit
                     )
                 }
 

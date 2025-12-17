@@ -1,6 +1,5 @@
 package com.bookstore.ui.book
 
-
 import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +56,6 @@ class AddBookActivity : ComponentActivity() {
             var imageUrl by remember { mutableStateOf("") }
             var price by remember { mutableStateOf(0.0) }
 
-            // Launcher for image selection
             val imagePickerLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.GetContent()
             ) { uri: Uri? ->
@@ -67,7 +65,7 @@ class AddBookActivity : ComponentActivity() {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFF8F9FA))
+                    .background(Color(0xFFF5F7F4))   // nền dịu hơn
             ) {
                 Column(
                     modifier = Modifier
@@ -75,17 +73,18 @@ class AddBookActivity : ComponentActivity() {
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Header
+
+                    /* ===== HEADER ===== */
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        color = Color.White,
-                        shadowElevation = 2.dp
+                        color = Color(0xFFFDFCFB),
+                        shadowElevation = 6.dp
                     ) {
                         Text(
-                            text = "Thêm Sách Mới",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
+                            text = "Thêm sách mới",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF3F5D4A),
                             modifier = Modifier.padding(24.dp)
                         )
                     }
@@ -93,19 +92,18 @@ class AddBookActivity : ComponentActivity() {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
+                            .padding(20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Image Section
+
+                        /* ===== IMAGE CARD ===== */
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(240.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFDFCFB)),
+                            elevation = CardDefaults.cardElevation(6.dp)
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -119,19 +117,18 @@ class AddBookActivity : ComponentActivity() {
                                     )
                                 } else {
                                     Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Icon(
-                                            imageVector = androidx.compose.material.icons.Icons.Default.Add,
-                                            contentDescription = "Add Image",
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
                                             modifier = Modifier.size(48.dp),
-                                            tint = Color(0xFFB0BEC5)
+                                            tint = Color(0xFF5B7F6A)
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             "Chọn ảnh bìa",
-                                            color = Color(0xFF90A4AE),
+                                            color = Color(0xFF5B7F6A),
                                             fontSize = 14.sp
                                         )
                                     }
@@ -144,81 +141,28 @@ class AddBookActivity : ComponentActivity() {
                         OutlinedButton(
                             onClick = { imagePickerLauncher.launch("image/*") },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = Color(0xFF546E7A)
+                                contentColor = Color(0xFF5B7F6A)
                             )
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Choose Image",
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
                             Text(if (imageUri != null) "Thay đổi ảnh" else "Chọn ảnh")
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Input Fields
-                        OutlinedTextField(
-                            value = title,
-                            onValueChange = { title = it },
-                            label = { Text("Tên sách") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF546E7A),
-                                unfocusedBorderColor = Color(0xFFCFD8DC)
-                            ),
-                            singleLine = true
-                        )
+                        /* ===== INPUTS (GIỮ NGUYÊN BIẾN) ===== */
+                        inputField("Tên sách", title) { title = it }
+                        inputField("Tác giả", author) { author = it }
+                        inputField("Thể loại", category) { category = it }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = author,
-                            onValueChange = { author = it },
-                            label = { Text("Tác giả") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF546E7A),
-                                unfocusedBorderColor = Color(0xFFCFD8DC)
-                            ),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
-                            value = category,
-                            onValueChange = { category = it },
-                            label = { Text("Thể loại") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF546E7A),
-                                unfocusedBorderColor = Color(0xFFCFD8DC)
-                            ),
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        OutlinedTextField(
+                        inputField(
+                            label = "Giá (VNĐ)",
                             value = if (price == 0.0) "" else price.toString(),
-                            onValueChange = { price = it.toDoubleOrNull() ?: 0.0 },
-                            label = { Text("Giá (VNĐ)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF546E7A),
-                                unfocusedBorderColor = Color(0xFFCFD8DC)
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                            keyboardType = KeyboardType.Number
+                        ) { price = it.toDoubleOrNull() ?: 0.0 }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -229,17 +173,19 @@ class AddBookActivity : ComponentActivity() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(120.dp),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF546E7A),
-                                unfocusedBorderColor = Color(0xFFCFD8DC)
+                                focusedBorderColor = Color(0xFF5B7F6A),
+                                unfocusedBorderColor = Color(0xFF5B7F6A).copy(alpha = 0.4f),
+                                focusedLabelColor = Color(0xFF5B7F6A),
+                                cursorColor = Color(0xFF5B7F6A)
                             ),
                             maxLines = 5
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        // Save Button
+                        /* ===== SAVE BUTTON ===== */
                         Button(
                             onClick = {
                                 if (imageUri != null && title.isNotEmpty() && author.isNotEmpty()) {
@@ -267,15 +213,15 @@ class AddBookActivity : ComponentActivity() {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(20.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF546E7A)
+                                containerColor = Color(0xFF5B7F6A)
                             )
                         ) {
                             Text(
-                                "Lưu Sách",
+                                "LƯU SÁCH",
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Bold
                             )
                         }
 
@@ -286,14 +232,13 @@ class AddBookActivity : ComponentActivity() {
         }
     }
 
+    /* ================= LOGIC GIỮ NGUYÊN ================= */
+
     private fun uploadImageToCloudinary(uri: Uri, onSuccess: (String) -> Unit) {
-        // Tải ảnh lên Cloudinary và lấy link
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val imageUrl = uploadImage(uri)
-                withContext(Dispatchers.Main) {
-                    onSuccess(imageUrl)
-                }
+                withContext(Dispatchers.Main) { onSuccess(imageUrl) }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@AddBookActivity, "Lỗi khi upload ảnh: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -303,37 +248,32 @@ class AddBookActivity : ComponentActivity() {
     }
 
     private fun uploadImage(uri: Uri): String {
-        val contentResolver = contentResolver
         val inputStream = contentResolver.openInputStream(uri)
-
-        if (inputStream == null) {
-            throw Exception("Không thể mở InputStream từ URI.")
-        }
+            ?: throw Exception("Không thể mở InputStream")
 
         val requestBody = inputStream.readBytes().toRequestBody("image/*".toMediaTypeOrNull())
-        val cloudName = "dujmhnsee" // Thay bằng cloud name của bạn
-        val uploadPreset = "my_unsigned_preset" // Thay bằng preset của bạn
-
+        val cloudName = "dujmhnsee"
+        val uploadPreset = "my_unsigned_preset"
 
         val client = OkHttpClient()
         val request = Request.Builder()
             .url("https://api.cloudinary.com/v1_1/$cloudName/image/upload")
-            .post(MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("upload_preset", uploadPreset)
-                .addFormDataPart("file", "image.jpg", requestBody)
-                .build())
+            .post(
+                MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("upload_preset", uploadPreset)
+                    .addFormDataPart("file", "image.jpg", requestBody)
+                    .build()
+            )
             .build()
 
         val response = client.newCall(request).execute()
-        val responseBody = response.body?.string()
+        val body = response.body?.string()
 
-        if (response.isSuccessful && responseBody != null) {
-            val jsonResponse = JSONObject(responseBody)
-            val imageUrl = jsonResponse.getString("secure_url")
-            return imageUrl
+        if (response.isSuccessful && body != null) {
+            return JSONObject(body).getString("secure_url")
         } else {
-            throw Exception("Lỗi khi upload ảnh lên Cloudinary: ${response.code}")
+            throw Exception("Upload thất bại")
         }
     }
 
@@ -348,4 +288,31 @@ class AddBookActivity : ComponentActivity() {
                 Toast.makeText(this, "Lỗi khi thêm sách: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
+}
+
+/* ================= UI HELPER (KHÔNG ĐỘNG LOGIC) ================= */
+
+@Composable
+private fun inputField(
+    label: String,
+    value: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    onChange: (String) -> Unit
+) {
+    Spacer(modifier = Modifier.height(14.dp))
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(),
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        shape = RoundedCornerShape(16.dp),
+        singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color(0xFF5B7F6A),
+            unfocusedBorderColor = Color(0xFF5B7F6A).copy(alpha = 0.4f),
+            focusedLabelColor = Color(0xFF5B7F6A),
+            cursorColor = Color(0xFF5B7F6A)
+        )
+    )
 }

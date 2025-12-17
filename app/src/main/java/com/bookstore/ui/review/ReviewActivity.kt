@@ -28,6 +28,14 @@ import com.bookstore.data.model.Review
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
+/* ===== UI COLORS (CHỈ HIỂN THỊ) ===== */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val StarActive = Color(0xFFFFC107)
+private val StarInactive = Color(0xFFE0E0E0)
+
 class ReviewActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,7 +52,11 @@ class ReviewActivity : ComponentActivity() {
                 bookTitle = bookTitle,
                 bookImage = bookImage,
                 onReviewSubmitted = {
-                    Toast.makeText(this, "Đánh giá của bạn đã được gửi thành công", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this,
+                        "Đánh giá của bạn đã được gửi thành công",
+                        Toast.LENGTH_LONG
+                    ).show()
                     setResult(RESULT_OK)
                     finish()
                 }
@@ -84,24 +96,26 @@ fun ReviewScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(BackgroundSoft)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // Header
-            Surface(
+
+            /* ===== HEADER ===== */
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 2.dp
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                elevation = CardDefaults.cardElevation(6.dp)
             ) {
                 Text(
                     text = "Đánh giá sản phẩm",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GreenDark,
                     modifier = Modifier.padding(24.dp)
                 )
             }
@@ -112,14 +126,13 @@ fun ReviewScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Book Info Card
+
+                /* ===== BOOK INFO ===== */
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardColor),
+                    elevation = CardDefaults.cardElevation(4.dp)
                 ) {
                     Row(
                         modifier = Modifier
@@ -132,40 +145,42 @@ fun ReviewScreen(
                             contentDescription = bookTitle,
                             modifier = Modifier
                                 .size(80.dp)
-                                .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF0F0F0), RoundedCornerShape(12.dp))
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Text(
                             text = bookTitle,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            )
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = GreenDark
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Rating Section
+                /* ===== RATING ===== */
                 Text(
                     text = "Đánh giá của bạn",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = GreenDark
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Star Rating
                 Row(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     for (i in 1..5) {
                         Icon(
-                            imageVector = if (i <= rating) Icons.Filled.Star else Icons.Outlined.Star,
+                            imageVector = if (i <= rating)
+                                Icons.Filled.Star
+                            else
+                                Icons.Outlined.Star,
                             contentDescription = "Star $i",
-                            tint = if (i <= rating) Color(0xFFFFC107) else Color(0xFFE0E0E0),
+                            tint = if (i <= rating) StarActive else StarInactive,
                             modifier = Modifier
                                 .size(48.dp)
                                 .clickable { rating = i }
@@ -191,7 +206,7 @@ fun ReviewScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Comment Section
+                /* ===== COMMENT ===== */
                 OutlinedTextField(
                     value = comment,
                     onValueChange = { comment = it },
@@ -200,26 +215,36 @@ fun ReviewScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(180.dp),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF546E7A),
-                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                        focusedBorderColor = GreenPrimary,
+                        unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                        focusedLabelColor = GreenPrimary,
+                        cursorColor = GreenPrimary
                     ),
                     maxLines = 8
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Submit Button
+                /* ===== SUBMIT ===== */
                 Button(
                     onClick = {
                         if (rating == 0) {
-                            Toast.makeText(context, "Vui lòng chọn số sao đánh giá", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Vui lòng chọn số sao đánh giá",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@Button
                         }
 
                         if (comment.isBlank()) {
-                            Toast.makeText(context, "Vui lòng viết nhận xét", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Vui lòng viết nhận xét",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@Button
                         }
 
@@ -234,16 +259,13 @@ fun ReviewScreen(
                             rating = rating.toDouble(),
                             comment = comment,
                             timestamp = System.currentTimeMillis(),
-                            approved = true // Không cần duyệt
+                            approved = true
                         )
 
                         db.collection("reviews")
                             .add(review)
-                            .addOnSuccessListener { docRef ->
-                                // Cập nhật rating trung bình của sách ngay lập tức
+                            .addOnSuccessListener {
                                 updateBookRating(db, bookId)
-
-                                // Cập nhật orderId với reviewId để track
                                 db.collection("orders")
                                     .document(orderId)
                                     .update("reviewed", true)
@@ -268,10 +290,8 @@ fun ReviewScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF546E7A)
-                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
                     enabled = !isSubmitting
                 ) {
                     if (isSubmitting) {
@@ -281,13 +301,12 @@ fun ReviewScreen(
                         )
                     } else {
                         Text(
-                            "Gửi đánh giá",
+                            "GỬI ĐÁNH GIÁ",
                             fontSize = 16.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
-
 
                 Spacer(modifier = Modifier.height(24.dp))
             }
@@ -296,15 +315,17 @@ fun ReviewScreen(
 }
 
 private fun updateBookRating(db: FirebaseFirestore, bookId: String) {
-    // Tính lại rating trung bình của sách ngay lập tức
     db.collection("reviews")
         .whereEqualTo("bookId", bookId)
         .get()
         .addOnSuccessListener { snapshot ->
-            val reviews = snapshot.documents.mapNotNull { it.toObject(Review::class.java) }
+            val reviews = snapshot.documents.mapNotNull {
+                it.toObject(Review::class.java)
+            }
             if (reviews.isNotEmpty()) {
                 val avgRating = reviews.map { it.rating }.average()
-                db.collection("books").document(bookId)
+                db.collection("books")
+                    .document(bookId)
                     .update("rating", avgRating)
             }
         }

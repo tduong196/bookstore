@@ -27,6 +27,12 @@ import com.bookstore.ui.theme.BookstoreTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 
+/* ===== UI COLORS (CHỈ HIỂN THỊ) ===== */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+
 class EditBookActivity : ComponentActivity() {
     private val db = FirebaseFirestore.getInstance()
 
@@ -80,18 +86,15 @@ fun EditBookScreen(
     val context = LocalContext.current
     val db = FirebaseFirestore.getInstance()
 
-    // Các biến trạng thái các trường bình thường
     var title by remember { mutableStateOf(initTitle) }
     var author by remember { mutableStateOf(initAuthor) }
     var description by remember { mutableStateOf(initDescription) }
     var category by remember { mutableStateOf(initCategory) }
     var rating by remember { mutableStateOf(initRating) }
 
-    // Biến trạng thái riêng cho price, khởi tạo tạm 0.0
     var price by remember { mutableStateOf(0.0) }
     var isPriceLoading by remember { mutableStateOf(true) }
 
-    // Lấy giá price từ Firestore theo documentId khi compose bắt đầu
     LaunchedEffect(documentId) {
         isPriceLoading = true
         db.collection("books").document(documentId).get()
@@ -110,7 +113,7 @@ fun EditBookScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(BackgroundSoft)
     ) {
         Column(
             modifier = Modifier
@@ -118,17 +121,18 @@ fun EditBookScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header
+
+            /* ===== HEADER ===== */
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 2.dp
+                color = CardColor,
+                shadowElevation = 6.dp
             ) {
                 Text(
-                    text = "Chỉnh Sửa Sách",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    text = "Chỉnh sửa sách",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = GreenDark,
                     modifier = Modifier.padding(24.dp)
                 )
             }
@@ -139,16 +143,15 @@ fun EditBookScreen(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Image Section
+
+                /* ===== IMAGE ===== */
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(240.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardColor),
+                    elevation = CardDefaults.cardElevation(6.dp)
                 ) {
                     AsyncImage(
                         model = imageUrl,
@@ -160,16 +163,17 @@ fun EditBookScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Input Fields
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Tên sách") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF546E7A),
-                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                        focusedBorderColor = GreenPrimary,
+                        unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                        focusedLabelColor = GreenPrimary,
+                        cursorColor = GreenPrimary
                     ),
                     singleLine = true
                 )
@@ -181,10 +185,12 @@ fun EditBookScreen(
                     onValueChange = { author = it },
                     label = { Text("Tác giả") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF546E7A),
-                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                        focusedBorderColor = GreenPrimary,
+                        unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                        focusedLabelColor = GreenPrimary,
+                        cursorColor = GreenPrimary
                     ),
                     singleLine = true
                 )
@@ -196,10 +202,12 @@ fun EditBookScreen(
                     onValueChange = { category = it },
                     label = { Text("Thể loại") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF546E7A),
-                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                        focusedBorderColor = GreenPrimary,
+                        unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                        focusedLabelColor = GreenPrimary,
+                        cursorColor = GreenPrimary
                     ),
                     singleLine = true
                 )
@@ -208,19 +216,23 @@ fun EditBookScreen(
 
                 if (isPriceLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color(0xFF546E7A)
+                        modifier = Modifier.size(28.dp),
+                        color = GreenPrimary
                     )
                 } else {
                     OutlinedTextField(
                         value = if (price == 0.0) "" else price.toString(),
-                        onValueChange = { newVal -> price = newVal.toDoubleOrNull() ?: price },
+                        onValueChange = { newVal ->
+                            price = newVal.toDoubleOrNull() ?: price
+                        },
                         label = { Text("Giá (VNĐ)") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF546E7A),
-                            unfocusedBorderColor = Color(0xFFCFD8DC)
+                            focusedBorderColor = GreenPrimary,
+                            unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                            focusedLabelColor = GreenPrimary,
+                            cursorColor = GreenPrimary
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
@@ -236,17 +248,18 @@ fun EditBookScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF546E7A),
-                        unfocusedBorderColor = Color(0xFFCFD8DC)
+                        focusedBorderColor = GreenPrimary,
+                        unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                        focusedLabelColor = GreenPrimary,
+                        cursorColor = GreenPrimary
                     ),
                     maxLines = 5
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Save Button
                 Button(
                     onClick = {
                         val ratingValue = try {
@@ -274,15 +287,16 @@ fun EditBookScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF546E7A)
+                        containerColor = GreenPrimary
                     )
                 ) {
                     Text(
-                        "Lưu Chỉnh Sửa",
+                        text = "LƯU CHỈNH SỬA",
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
 
@@ -291,7 +305,3 @@ fun EditBookScreen(
         }
     }
 }
-
-
-
-

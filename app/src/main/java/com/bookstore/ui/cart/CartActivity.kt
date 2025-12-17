@@ -4,12 +4,16 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,28 +28,30 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.bookstore.data.manager.CartManager
 import com.bookstore.data.model.Book
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.HorizontalDivider
-import com.bookstore.ui.theme.BookstoreTheme
 import com.bookstore.ui.payment.PaymentMethodActivity
 import com.bookstore.ui.user.NotificationActivity
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 
+/* ===================== COLORS ===================== */
+
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val PriceColor = Color(0xFF2E7D32)
+
+/* ===================== ACTIVITY ===================== */
+
 class CartActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            BookstoreTheme {
-                CartScreen()
-            }
-        }
+        setContent { CartScreen() }
     }
 }
+
+/* ===================== SCREEN ===================== */
 
 @Composable
 fun CartScreen() {
@@ -53,196 +59,166 @@ fun CartScreen() {
     var cartItems by remember { mutableStateOf(CartManager.getCart(context)) }
     var firestoreBooks by remember { mutableStateOf<List<Book>>(emptyList()) }
     val user = Firebase.auth.currentUser
-    var expanded by remember { mutableStateOf(false) }
+
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
     var isFirestoreLoaded by remember { mutableStateOf(false) }
 
-    // Load dữ liệu sách từ Firestore
     LaunchedEffect(true) {
         Firebase.firestore.collection("books")
             .get()
-            .addOnSuccessListener { result ->
-                val books = result.mapNotNull { it.toObject(Book::class.java).copy(id = it.id) }
-                firestoreBooks = books
+            .addOnSuccessListener {
+                firestoreBooks = it.mapNotNull { doc ->
+                    doc.toObject(Book::class.java).copy(id = doc.id)
+                }
                 isFirestoreLoaded = true
-                Log.d("FirestoreLoad", "Dữ liệu sách đã tải xong: ${books.size} sách")
-            }
-            .addOnFailureListener {
-                Log.e("FirestoreLoad", "Lỗi khi tải dữ liệu sách", it)
             }
     }
 
-    // Cập nhật giỏ hàng với giá và ID từ Firestore khi đã có dữ liệu
     val updatedCartItems = remember(cartItems, firestoreBooks) {
         if (isFirestoreLoaded) {
             cartItems.map { cartBook ->
-                firestoreBooks.find { it.title == cartBook.title }?.let { matchedBook ->
+                firestoreBooks.find { it.title == cartBook.title }?.let {
                     cartBook.copy(
-                        id = matchedBook.id, // Lấy bookId từ Firestore
-                        price = matchedBook.price,
-                        image_url = matchedBook.image_url // Đảm bảo có image_url
-                    ).also {
-                        Log.d("CartUpdate", "Cập nhật sách ${cartBook.title}: ID=${matchedBook.id}, giá=${matchedBook.price}")
-                    }
-                } ?: cartBook.also {
-                    Log.w("CartUpdate", "Không tìm thấy sách tương ứng cho ${cartBook.title}")
-                }
+                        id = it.id,
+                        price = it.price,
+                        image_url = it.image_url
+                    )
+                } ?: cartBook
             }
-        } else {
-            cartItems.also {
-                Log.d("CartUpdate", "Chưa tải xong dữ liệu Firestore, giữ nguyên giỏ hàng")
-            }
-        }
+        } else cartItems
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundSoft)
+            .padding(16.dp)
+    ) {
+
+        Text(
+            text = "Giỏ hàng của bạn",
+            fontSize = 26.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = GreenDark,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
 
         LazyColumn(modifier = Modifier.weight(1f)) {
+
             items(updatedCartItems) { item ->
-                CartItem(
+                CartItemUI(
                     book = item,
                     onRemove = {
                         CartManager.removeFromCart(context, item)
                         cartItems = CartManager.getCart(context)
-                        Log.d("CartAction", "Đã xóa sách: ${item.title}")
                     },
-                    onQuantityChange = { newQuantity ->
-                        val updatedBook = item.copy(quantity = newQuantity)
-                        CartManager.updateCartItem(context, updatedBook)
+                    onQuantityChange = {
+                        CartManager.updateCartItem(context, item.copy(quantity = it))
                         cartItems = CartManager.getCart(context)
-                        Log.d("CartAction", "Cập nhật số lượng ${item.title}: $newQuantity")
                     }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
             }
 
             item {
                 CheckoutOptionsSection()
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // Địa chỉ giao hàng - expandable section
+                /* ADDRESS */
                 Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardColor),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp)
-                        .clickable { expanded = !expanded },
-                    shape = RoundedCornerShape(12.dp)
+                        .clickable { expanded = !expanded }
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LocationOn, null, tint = GreenPrimary)
+                            Spacer(Modifier.width(8.dp))
                             Text("Địa chỉ giao hàng", fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.weight(1f))
+                            Spacer(Modifier.weight(1f))
                             Icon(
                                 if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = null
+                                null
                             )
                         }
 
                         if (expanded) {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(Modifier.height(12.dp))
                             OutlinedTextField(
                                 value = phone,
                                 onValueChange = { phone = it },
                                 label = { Text("Số điện thoại") },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = textFieldColors()
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(Modifier.height(8.dp))
                             OutlinedTextField(
                                 value = address,
                                 onValueChange = { address = it },
                                 label = { Text("Địa chỉ") },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = textFieldColors()
                             )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
-        CheckoutSummary(
+        CheckoutSummaryUI(
             totalPrice = updatedCartItems.sumOf { it.price * it.quantity }.toInt(),
             onOrderClick = {
-                if (!isFirestoreLoaded) {
-                    Toast.makeText(context, "Đang tải dữ liệu sách, vui lòng chờ...", Toast.LENGTH_SHORT).show()
-                    return@CheckoutSummary
+                if (updatedCartItems.isEmpty()) {
+                    Toast.makeText(context, "Giỏ hàng trống", Toast.LENGTH_SHORT).show()
+                    return@CheckoutSummaryUI
                 }
-
-                val finalCart = updatedCartItems
-
-                if (finalCart.isEmpty()) {
-                    Toast.makeText(context, "Giỏ hàng trống!", Toast.LENGTH_SHORT).show()
-                    return@CheckoutSummary
-                }
-
                 if (phone.isBlank() || address.isBlank()) {
-                    Toast.makeText(context, "Vui lòng nhập số điện thoại và địa chỉ giao hàng!", Toast.LENGTH_SHORT).show()
-                    return@CheckoutSummary
-                }
-
-                // Kiểm tra lại giá và bookId trước khi đặt hàng
-                finalCart.forEach { item ->
-                    if (item.price <= 0) {
-                        Toast.makeText(context, "Giá sản phẩm ${item.title} không hợp lệ!", Toast.LENGTH_SHORT).show()
-                        return@CheckoutSummary
-                    }
-                    if (item.id.isBlank()) {
-                        Toast.makeText(context, "Không tìm thấy ID sản phẩm ${item.title}. Vui lòng thử lại!", Toast.LENGTH_SHORT).show()
-                        Log.e("OrderError", "BookId trống cho sách: ${item.title}")
-                        return@CheckoutSummary
-                    }
-                }
-
-                Log.d("OrderDebug", "Tạo đơn hàng với ${finalCart.size} sản phẩm")
-                finalCart.forEach { item ->
-                    Log.d("OrderDebug", "Sản phẩm: ${item.title}, ID: ${item.id}, Giá: ${item.price}")
+                    Toast.makeText(context, "Vui lòng nhập địa chỉ giao hàng", Toast.LENGTH_SHORT).show()
+                    return@CheckoutSummaryUI
                 }
 
                 val orderData = mapOf(
                     "userId" to user?.uid,
                     "userEmail" to user?.email,
-                    "userName" to user?.displayName,
                     "phone" to phone,
                     "address" to address,
-                    "items" to finalCart.map {
+                    "items" to updatedCartItems.map {
                         mapOf(
                             "bookId" to it.id,
                             "title" to it.title,
                             "quantity" to it.quantity,
-                            "price" to it.price,
-                            "imageUrl" to it.image_url,
-                            "total" to (it.price * it.quantity)
+                            "price" to it.price
                         )
                     },
-                    "totalAmount" to finalCart.sumOf { it.price * it.quantity },
+                    "totalAmount" to updatedCartItems.sumOf { it.price * it.quantity },
                     "timestamp" to System.currentTimeMillis(),
-                    "status" to "PENDING",
-                    "reviewed" to false
+                    "status" to "PENDING"
                 )
 
                 Firebase.firestore.collection("orders")
                     .add(orderData)
                     .addOnSuccessListener {
-                        Toast.makeText(context, "Đặt hàng thành công!", Toast.LENGTH_SHORT).show()
                         CartManager.clearCart(context)
-                        Log.d("OrderSuccess", "Đã tạo đơn hàng: ${it.id}")
-
-                        val intent = Intent(context, NotificationActivity::class.java)
-                        intent.putExtra("orderId", it.id)
-                        context.startActivity(intent)
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(context, "Lỗi khi đặt hàng!", Toast.LENGTH_SHORT).show()
-                        Log.e("OrderError", "Lỗi khi tạo đơn hàng", it)
+                        context.startActivity(
+                            Intent(context, NotificationActivity::class.java)
+                                .putExtra("orderId", it.id)
+                        )
                     }
             }
         )
     }
 }
 
+/* ===================== CART ITEM ===================== */
+
 @Composable
-fun CartItem(
+fun CartItemUI(
     book: Book,
     onRemove: () -> Unit,
     onQuantityChange: (Int) -> Unit
@@ -250,22 +226,21 @@ fun CartItem(
     var quantity by remember { mutableStateOf(book.quantity) }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
             AsyncImage(
                 model = book.image_url,
                 contentDescription = null,
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(12.dp))
             )
 
             Column(
@@ -273,45 +248,36 @@ fun CartItem(
                     .weight(1f)
                     .padding(start = 12.dp)
             ) {
-                Text(book.title, fontWeight = FontWeight.Bold)
-                Text("${book.price.toInt()} VNĐ", color = Color(0xFF0077B6))
+                Text(
+                    book.title,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2
+                )
+                Text(
+                    "${java.text.NumberFormat.getCurrencyInstance(java.util.Locale("vi", "VN")).format(book.price)}",
+                    color = PriceColor,
+                    fontWeight = FontWeight.Bold
+                )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    IconButton(
-                        onClick = {
-                            if (quantity > 1) {
-                                quantity--
-                                onQuantityChange(quantity)
-                            }
-                        },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Text("-", fontSize = 18.sp)
-                    }
-
-                    Text("$quantity", modifier = Modifier.padding(horizontal = 8.dp))
-
-                    IconButton(
-                        onClick = {
-                            quantity++
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    QuantityButton("-", onClick = {
+                        if (quantity > 1) {
+                            quantity--
                             onQuantityChange(quantity)
-                        },
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Text("+", fontSize = 18.sp)
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
+                        }
+                    })
+                    Text(
+                        "$quantity",
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                    QuantityButton("+", onClick = {
+                        quantity++
+                        onQuantityChange(quantity)
+                    })
+                    Spacer(Modifier.weight(1f))
                     IconButton(onClick = onRemove) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Xóa",
-                            tint = Color(0xFFD00000)
-                        )
+                        Icon(Icons.Default.Delete, null, tint = Color.Red)
                     }
                 }
             }
@@ -319,25 +285,70 @@ fun CartItem(
     }
 }
 
-// Các composable khác giữ nguyên như bản gốc
+/* ===================== CHECKOUT SUMMARY ===================== */
+
+@Composable
+fun CheckoutSummaryUI(totalPrice: Int, onOrderClick: () -> Unit) {
+    Card(
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        elevation = CardDefaults.cardElevation(12.dp)
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Tổng thanh toán", fontWeight = FontWeight.Medium)
+                Text(
+                    "${java.text.NumberFormat.getCurrencyInstance(java.util.Locale("vi", "VN")).format(totalPrice)}",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp,
+                    color = GreenDark
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = onOrderClick,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
+            ) {
+                Text("ĐẶT HÀNG", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+/* ===================== SMALL COMPONENTS ===================== */
+
+@Composable
+fun QuantityButton(text: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.size(32.dp),
+        shape = RoundedCornerShape(8.dp),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Text(text, fontWeight = FontWeight.Bold)
+    }
+}
+
 @Composable
 fun CheckoutOptionsSection() {
     val context = LocalContext.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(12.dp)
+    Card(
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor)
     ) {
-        CheckoutOption("Phương thức thanh toán", "Chưa chọn") {
-            val intent = Intent(context, PaymentMethodActivity::class.java)
-            context.startActivity(intent)
-        }
-
-        HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
-        CheckoutOption("Khuyến mãi", "Chưa áp dụng") {
-            /* Mở màn hình khuyến mãi */
+        Column(Modifier.padding(12.dp)) {
+            CheckoutOption("Phương thức thanh toán", "Chưa chọn") {
+                context.startActivity(Intent(context, PaymentMethodActivity::class.java))
+            }
+            Divider(Modifier.padding(vertical = 8.dp))
+            CheckoutOption("Khuyến mãi", "Chưa áp dụng") {}
         }
     }
 }
@@ -348,41 +359,26 @@ fun CheckoutOption(title: String, value: String, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
             Text(title, fontWeight = FontWeight.SemiBold)
-            Text(value, color = Color.Gray, fontSize = 13.sp)
+            Text(value, color = Color.Gray)
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Chọn")
+        Spacer(Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
     }
 }
 
 @Composable
-fun CheckoutSummary(totalPrice: Int, onOrderClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(Color.White)
-    ) {
-        Text("Thanh toán", fontWeight = FontWeight.Bold)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Tổng tiền:")
-            Text("$totalPrice VNĐ", fontWeight = FontWeight.Bold)
-        }
+private fun textFieldColors() = TextFieldDefaults.colors(
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent,
 
-        Button(
-            onClick = onOrderClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF0077B6)
-            )
-        ) {
-            Text("Đặt đơn hàng", color = Color.White)
-        }
-    }
-}
+    focusedIndicatorColor = GreenPrimary,
+    unfocusedIndicatorColor = GreenPrimary.copy(alpha = 0.4f),
+
+    focusedLabelColor = GreenPrimary,
+    cursorColor = GreenPrimary
+)

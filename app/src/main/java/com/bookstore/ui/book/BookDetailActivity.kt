@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -26,11 +27,21 @@ import coil.compose.AsyncImage
 import com.bookstore.data.manager.CartManager
 import com.bookstore.data.model.Book
 import com.bookstore.data.model.Comment
+import com.bookstore.data.model.Review
 import com.bookstore.ui.theme.BookstoreTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 
+/* ================= UI COLORS (HIỂN THỊ ONLY) ================= */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val PriceColor = Color(0xFFC62828)
+private val StarActive = Color(0xFFFFC107)
+private val StarInactive = Color(0xFFE0E0E0)
 
 class BookDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,20 +52,19 @@ class BookDetailActivity : ComponentActivity() {
         val author = intent.getStringExtra("author") ?: ""
         val description = intent.getStringExtra("description") ?: ""
         val category = intent.getStringExtra("category") ?: ""
-        val formattedPrice = intent.getStringExtra("price") ?: ""
+        val price = intent.getDoubleExtra("price", 0.0)
         val rating = intent.getDoubleExtra("rating", 0.0)
-
 
         setContent {
             BookstoreTheme {
                 BookDetailScreen(
-                    imageUrl = imageUrl,
-                    title = title,
-                    author = author,
-                    description = description,
-                    category = category,
-                    rating = rating,
-                    formattedPrice = formattedPrice
+                    imageUrl,
+                    title,
+                    author,
+                    description,
+                    category,
+                    rating,
+                    price
                 )
             }
         }
@@ -69,23 +79,21 @@ fun BookDetailScreen(
     description: String,
     category: String,
     rating: Double,
-    formattedPrice: String,
+    price: Double
 ) {
     val context = LocalContext.current
     val db = Firebase.firestore
-    val scrollState = rememberScrollState()
-    var commentText by remember { mutableStateOf("") }
-    val commentList = remember { mutableStateListOf<Comment>() }
-    val reviewList = remember { mutableStateListOf<com.bookstore.data.model.Review>() }
     val auth = FirebaseAuth.getInstance()
     val currentUser = auth.currentUser
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
 
-    val userEmail = currentUser?.email ?: "Người dùng ẩn danh"
-    var userRole by remember { mutableStateOf<Int?>(null) }
+    val commentList = remember { mutableStateListOf<Comment>() }
+    val reviewList = remember { mutableStateListOf<Review>() }
+    var commentText by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableIntStateOf(0) }
     var bookId by remember { mutableStateOf("") }
 
-    // Tìm bookId từ title
+    /* ================= GIỮ NGUYÊN LOGIC ================= */
+
     LaunchedEffect(title) {
         db.collection("books")
             .whereEqualTo("title", title)
@@ -94,480 +102,258 @@ fun BookDetailScreen(
                 if (!snapshot.isEmpty) {
                     bookId = snapshot.documents[0].id
 
-                    // Load reviews cho sách này (không cần duyệt)
                     db.collection("reviews")
                         .whereEqualTo("bookId", bookId)
-                        .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                        .addSnapshotListener { reviewSnapshot, _ ->
-                            reviewSnapshot?.let {
-                                val reviews = it.documents.mapNotNull { doc ->
-                                    doc.toObject(com.bookstore.data.model.Review::class.java)?.copy(id = doc.id)
-                                }
+                        .orderBy("timestamp", Query.Direction.DESCENDING)
+                        .addSnapshotListener { rs, _ ->
+                            rs?.let {
                                 reviewList.clear()
-                                reviewList.addAll(reviews)
+                                reviewList.addAll(
+                                    it.documents.mapNotNull { d ->
+                                        d.toObject(Review::class.java)
+                                    }
+                                )
                             }
                         }
                 }
             }
     }
 
-    LaunchedEffect(userEmail) {
-        if (userEmail != "Người dùng ẩn danh") {
-            Firebase.firestore.collection("users")
-                .document(userEmail)
-                .get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        userRole = document.getLong("role")?.toInt()
-                    }
-                }
-        }
-    }
-
-
-
-    // Load comments from Firestore on first load
     DisposableEffect(title) {
         val listener = db.collection("comments")
             .orderBy("timestamp")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) return@addSnapshotListener
-
+            .addSnapshotListener { snapshot, _ ->
                 snapshot?.let {
-                    val updatedComments = it.documents.mapNotNull { doc ->
-                        doc.toObject(Comment::class.java)
-                    }.filter { it.bookTitle.trim().equals(title.trim(), ignoreCase = true) }
-
                     commentList.clear()
-                    commentList.addAll(updatedComments)
+                    commentList.addAll(
+                        it.documents.mapNotNull { d ->
+                            d.toObject(Comment::class.java)
+                        }.filter { c ->
+                            c.bookTitle.equals(title, ignoreCase = true)
+                        }
+                    )
                 }
             }
-
-
-        onDispose {
-            listener.remove() // Hủy listener khi composable biến mất
-        }
+        onDispose { listener.remove() }
     }
-
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F8FF))
+            .background(BackgroundSoft)
     ) {
-        // Header với ảnh và thông tin cơ bản
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+
+        /* ================= HEADER ================= */
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = CardColor),
+            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+            elevation = CardDefaults.cardElevation(6.dp)
         ) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = title,
-                modifier = Modifier
-                    .height(250.dp)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Fit
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = title,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF023E8A)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(text = "Tác giả: $author", fontSize = 16.sp, color = Color(0xFF0077B6))
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Thể loại", fontSize = 12.sp, color = Color.Gray)
-                    Text(text = category, fontSize = 14.sp, color = Color(0xFF023E8A), fontWeight = FontWeight.SemiBold)
-                }
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
+                        .clip(RoundedCornerShape(20.dp)),
+                    contentScale = ContentScale.Fit
+                )
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Đánh giá", fontSize = 12.sp, color = Color.Gray)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = GreenDark)
+                Text("Tác giả: $author", color = Color.Gray)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    repeat(5) { i ->
                         Icon(
-                            imageVector = androidx.compose.material.icons.Icons.Filled.Star,
+                            if (i < rating.toInt()) Icons.Filled.Star else Icons.Outlined.Star,
                             contentDescription = null,
-                            tint = Color(0xFFFFC107),
-                            modifier = Modifier.size(16.dp)
+                            tint = if (i < rating.toInt()) StarActive else StarInactive
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "$rating", fontSize = 14.sp, color = Color(0xFF023E8A), fontWeight = FontWeight.SemiBold)
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(rating.toString())
                 }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = "$formattedPrice VNĐ",
-                fontSize = 23.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFd00000)
-            )
+                Text(
+                    "${price.toInt()} VNĐ",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PriceColor
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Button(
-                onClick = {
-                    val book = Book(
-                        id = "$title$author",
-                        title = title,
-                        author = author,
-                        description = description,
-                        category = category,
-                        rating = rating,
-                        image_url = imageUrl,
-                        price = formattedPrice.toDoubleOrNull() ?: 0.0
-                    )
-                    CartManager.addToCart(context, book)
-                    Toast.makeText(context, "Đã thêm vào giỏ hàng", Toast.LENGTH_SHORT).show()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0077B6)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text(text = "Thêm vào giỏ hàng", fontSize = 16.sp, color = Color.White)
+                Button(
+                    onClick = {
+                        val book = Book(
+                            id = "$title$author",
+                            title = title,
+                            author = author,
+                            description = description,
+                            category = category,
+                            rating = rating,
+                            image_url = imageUrl,
+                            price = price
+                        )
+                        CartManager.addToCart(context, book)
+                        Toast.makeText(context, "Đã thêm vào giỏ hàng", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Thêm vào giỏ hàng", fontWeight = FontWeight.Bold)
+                }
             }
         }
 
-        // TabRow
+        /* ================= TAB ================= */
         TabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = Color.White,
-            contentColor = Color(0xFF0077B6)
+            selectedTabIndex = selectedTab,
+            containerColor = CardColor,
+            contentColor = GreenPrimary
         ) {
-            Tab(
-                selected = selectedTabIndex == 0,
-                onClick = { selectedTabIndex = 0 },
-                text = {
-                    Text(
-                        "Chi tiết",
-                        fontWeight = if (selectedTabIndex == 0) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            )
-            Tab(
-                selected = selectedTabIndex == 1,
-                onClick = { selectedTabIndex = 1 },
-                text = {
-                    Text(
-                        "Đánh giá (${reviewList.size})",
-                        fontWeight = if (selectedTabIndex == 1) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            )
+            Tab(selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Chi tiết") })
+            Tab(selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Đánh giá") })
         }
 
-        // Content based on selected tab
-        when (selectedTabIndex) {
+        when (selectedTab) {
             0 -> DetailTab(
-                description = description,
-                commentText = commentText,
-                onCommentTextChange = { commentText = it },
-                commentList = commentList,
-                userRole = userRole,
-                userEmail = userEmail,
-                title = title,
-                db = db,
-                context = context,
-                scrollState = scrollState
+                description,
+                commentText,
+                { commentText = it },
+                commentList,
+                currentUser?.email ?: "Ẩn danh",
+                title,
+                db
             )
-            1 -> ReviewTab(
-                reviewList = reviewList,
-                scrollState = rememberScrollState()
-            )
-        }
 
+            1 -> ReviewTab(reviewList)
+        }
     }
 }
 
+/* ================= TAB CHI TIẾT ================= */
 @Composable
 fun DetailTab(
     description: String,
     commentText: String,
-    onCommentTextChange: (String) -> Unit,
+    onCommentChange: (String) -> Unit,
     commentList: List<Comment>,
-    userRole: Int?,
     userEmail: String,
-    title: String,
-    db: com.google.firebase.firestore.FirebaseFirestore,
-    context: android.content.Context,
-    scrollState: androidx.compose.foundation.ScrollState
+    bookTitle: String,
+    db: com.google.firebase.firestore.FirebaseFirestore
 ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        // Mô tả sản phẩm
-        Text(
-            text = "Mô tả sản phẩm",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF023E8A)
-        )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = description,
-            fontSize = 14.sp,
-            color = Color.DarkGray,
-            lineHeight = 20.sp
-        )
+        Text("Mô tả", fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(description)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Phần bình luận
-        Text(
-            text = "Bình luận",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF023E8A)
-        )
+        Text("Bình luận", fontWeight = FontWeight.Bold)
 
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = commentText,
-            onValueChange = onCommentTextChange,
-            label = { Text("Nhập bình luận") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
+            onValueChange = onCommentChange,
+            placeholder = { Text("Viết bình luận...") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp)
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(
             onClick = {
-                val comment = Comment(
-                    bookTitle = title,
-                    content = commentText,
-                    timestamp = System.currentTimeMillis(),
-                    userEmail = userEmail
-                )
-                db.collection("comments")
-                    .add(comment)
-                    .addOnSuccessListener {
-                        Toast.makeText(context, "Bình luận đã gửi", Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(context, "Lỗi gửi bình luận", Toast.LENGTH_SHORT).show()
-                    }
-
-                onCommentTextChange("")
+                if (commentText.isNotBlank()) {
+                    val comment = Comment(
+                        bookTitle = bookTitle,
+                        userEmail = userEmail,
+                        content = commentText,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    db.collection("comments").add(comment)
+                    onCommentChange("")
+                }
             },
-            modifier = Modifier.align(Alignment.End),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0077B6)),
-            shape = RoundedCornerShape(8.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
         ) {
-            Text("Gửi", color = Color.White)
+            Text("Gửi")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Danh sách bình luận
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            commentList.forEach { comment ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = comment.userEmail,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = Color(0xFF0077B6)
-                            )
-
-                            if (userRole == 2) {
-                                TextButton(onClick = {
-                                    db.collection("comments")
-                                        .whereEqualTo("bookTitle", comment.bookTitle)
-                                        .whereEqualTo("content", comment.content)
-                                        .whereEqualTo("timestamp", comment.timestamp)
-                                        .whereEqualTo("userEmail", comment.userEmail)
-                                        .get()
-                                        .addOnSuccessListener { documents ->
-                                            for (document in documents) {
-                                                db.collection("comments").document(document.id).delete()
-                                            }
-                                            Toast.makeText(context, "Đã xoá bình luận", Toast.LENGTH_SHORT).show()
-                                        }
-                                        .addOnFailureListener {
-                                            Toast.makeText(context, "Lỗi khi xoá", Toast.LENGTH_SHORT).show()
-                                        }
-                                }) {
-                                    Text("Xoá", color = Color.Red, fontSize = 12.sp)
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Text(
-                            text = comment.content,
-                            fontSize = 14.sp,
-                            color = Color.Black
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        comment.timestamp.takeIf { it > 0 }?.let {
-                            val time = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
-                                .format(java.util.Date(it))
-                            Text(
-                                text = time,
-                                fontSize = 12.sp,
-                                color = Color.Gray
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ReviewTab(
-    reviewList: List<com.bookstore.data.model.Review>,
-    scrollState: androidx.compose.foundation.ScrollState
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp)
-    ) {
-        if (reviewList.isEmpty()) {
-            Box(
+        commentList.forEach { c ->
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 48.dp),
-                contentAlignment = Alignment.Center
+                    .padding(vertical = 6.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = CardColor)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Outlined.Star,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = Color.LightGray
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Chưa có đánh giá nào",
-                        color = Color.Gray,
-                        fontSize = 16.sp
-                    )
-                }
-            }
-        } else {
-            Text(
-                text = "${reviewList.size} đánh giá",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF023E8A)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                reviewList.forEach { review ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = review.userName,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 15.sp,
-                                        color = Color(0xFF212121)
-                                    )
-                                    Text(
-                                        text = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                                            .format(java.util.Date(review.timestamp)),
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    repeat(5) { index ->
-                                        Icon(
-                                            imageVector = if (index < review.rating.toInt())
-                                                androidx.compose.material.icons.Icons.Filled.Star
-                                            else
-                                                androidx.compose.material.icons.Icons.Outlined.Star,
-                                            contentDescription = null,
-                                            tint = if (index < review.rating.toInt()) Color(0xFFFFC107) else Color(0xFFE0E0E0),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = review.comment,
-                                fontSize = 14.sp,
-                                color = Color(0xFF424242),
-                                lineHeight = 20.sp
-                            )
-                        }
-                    }
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(c.userEmail, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(c.content)
                 }
             }
         }
     }
 }
 
+/* ================= TAB ĐÁNH GIÁ ================= */
+@Composable
+fun ReviewTab(reviews: List<Review>) {
+    Column(
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        if (reviews.isEmpty()) {
+            Text("Chưa có đánh giá nào", color = Color.Gray)
+        } else {
+            reviews.forEach { r ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = CardColor)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(r.userName, fontWeight = FontWeight.Bold)
+                        Row {
+                            repeat(5) { i ->
+                                Icon(
+                                    Icons.Filled.Star,
+                                    contentDescription = null,
+                                    tint = if (i < r.rating.toInt()) StarActive else StarInactive
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(r.comment)
+                    }
+                }
+            }
+        }
+    }
+}

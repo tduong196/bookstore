@@ -25,6 +25,16 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.text.NumberFormat
 import java.util.*
 
+/* ===== UI COLORS (HIỂN THỊ ONLY) ===== */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val ApproveColor = Color(0xFF2E7D32)
+private val RejectColor = Color(0xFFC62828)
+private val PendingColor = Color(0xFFFFA000)
+private val DeliveredColor = Color(0xFF1565C0)
+
 class OrderManagementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,45 +65,66 @@ fun OrderManagementScreen() {
             }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Search bar
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundSoft)
+    ) {
+
+        /* ===== SEARCH BAR ===== */
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             label = { Text("Tìm kiếm đơn hàng") },
+            leadingIcon = {
+                Icon(Icons.Default.Search, contentDescription = "Search")
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Search")
-            }
+            shape = RoundedCornerShape(18.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = GreenPrimary,
+                unfocusedBorderColor = GreenPrimary.copy(alpha = 0.4f),
+                focusedLabelColor = GreenPrimary,
+                cursorColor = GreenPrimary
+            )
         )
 
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else if (orders.isEmpty()) {
-            Text(
-                "Không có đơn hàng nào",
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                color = Color.Gray
-            )
-        } else {
-            val filteredOrders = orders.filter {
-                it.id.contains(searchQuery, ignoreCase = true) ||
-                        it.userName.contains(searchQuery, ignoreCase = true) ||
-                        it.userEmail.contains(searchQuery, ignoreCase = true) ||
-                        it.phone.contains(searchQuery, ignoreCase = true) ||
-                        it.status.name.contains(searchQuery, ignoreCase = true)
+        when {
+            isLoading -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = GreenPrimary
+                )
             }
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(filteredOrders) { order ->
-                    AdminOrderCard(order = order)
-                    Spacer(modifier = Modifier.height(8.dp))
+            orders.isEmpty() -> {
+                Text(
+                    "Không có đơn hàng nào",
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = Color.Gray
+                )
+            }
+
+            else -> {
+                val filteredOrders = orders.filter {
+                    it.id.contains(searchQuery, ignoreCase = true) ||
+                            it.userName.contains(searchQuery, ignoreCase = true) ||
+                            it.userEmail.contains(searchQuery, ignoreCase = true) ||
+                            it.phone.contains(searchQuery, ignoreCase = true) ||
+                            it.status.name.contains(searchQuery, ignoreCase = true)
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    items(filteredOrders) { order ->
+                        AdminOrderCard(order = order)
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                 }
             }
         }
@@ -107,11 +138,13 @@ fun AdminOrderCard(order: AdminOrder) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            /* ===== HEADER ===== */
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -121,7 +154,8 @@ fun AdminOrderCard(order: AdminOrder) {
                     Text(
                         "Đơn #${order.id.take(6)}",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        color = GreenDark
                     )
                     Text(
                         order.userName,
@@ -133,86 +167,72 @@ fun AdminOrderCard(order: AdminOrder) {
                 AdminOrderStatusBadge(order.status)
             }
 
-            // Summary
+            /* ===== SUMMARY ===== */
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    "${order.items.size} sản phẩm",
-                    fontSize = 14.sp
-                )
-
+                Text("${order.items.size} sản phẩm")
                 Text(
                     "${numberFormat.format(order.items.sumOf { it.price * it.quantity })}đ",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = GreenPrimary
                 )
             }
 
-            // Expand button
             IconButton(
                 onClick = { expanded = !expanded },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Thu gọn" else "Mở rộng"
+                    contentDescription = null
                 )
             }
 
-            // Expanded details
+            /* ===== EXPANDED ===== */
             if (expanded) {
                 Column {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        thickness = DividerDefaults.Thickness,
-                        color = DividerDefaults.color
-                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    // Customer info
                     Text(
                         "Thông tin khách hàng",
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 4.dp)
+                        fontWeight = FontWeight.Bold
                     )
                     AdminInfoRow("Email:", order.userEmail)
                     AdminInfoRow("SĐT:", order.phone)
                     AdminInfoRow("Địa chỉ:", order.address)
 
-                    // Order items
                     Text(
                         "Sản phẩm",
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                     order.items.forEach { item ->
                         AdminOrderItemRow(item, numberFormat)
                     }
 
-                    // Status actions
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        if (order.status == AdminOrderStatus.PENDING) {
+                    if (order.status == AdminOrderStatus.PENDING) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
                             Button(
-                                onClick = { updateOrderStatus(order.id, AdminOrderStatus.APPROVED) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF4CAF50)
-                                )
+                                onClick = {
+                                    updateOrderStatus(order.id, AdminOrderStatus.APPROVED)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ApproveColor)
                             ) {
                                 Text("Duyệt đơn")
                             }
+
                             Button(
-                                onClick = { updateOrderStatus(order.id, AdminOrderStatus.REJECTED) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFFF44336)
-                                )
+                                onClick = {
+                                    updateOrderStatus(order.id, AdminOrderStatus.REJECTED)
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = RejectColor)
                             ) {
                                 Text("Từ chối")
                             }
@@ -227,17 +247,17 @@ fun AdminOrderCard(order: AdminOrder) {
 @Composable
 fun AdminOrderStatusBadge(status: AdminOrderStatus) {
     val (text, color) = when (status) {
-        AdminOrderStatus.PENDING -> "Chờ duyệt" to Color(0xFFFFA500)
-        AdminOrderStatus.APPROVED -> "Đã duyệt" to Color(0xFF4CAF50)
-        AdminOrderStatus.REJECTED -> "Từ chối" to Color(0xFFF44336)
-        AdminOrderStatus.DELIVERED -> "Đã giao" to Color(0xFF2196F3)
+        AdminOrderStatus.PENDING -> "Chờ duyệt" to PendingColor
+        AdminOrderStatus.APPROVED -> "Đã duyệt" to ApproveColor
+        AdminOrderStatus.REJECTED -> "Từ chối" to RejectColor
+        AdminOrderStatus.DELIVERED -> "Đã giao" to DeliveredColor
     }
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(color.copy(alpha = 0.2f))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(color.copy(alpha = 0.15f))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
             text = text,
@@ -253,26 +273,32 @@ fun AdminOrderItemRow(item: OrderItem, numberFormat: NumberFormat) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
             model = item.imageUrl,
             contentDescription = null,
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(item.title, fontWeight = FontWeight.Medium)
-            Text("${numberFormat.format(item.price)}đ x ${item.quantity}",
-                fontSize = 12.sp, color = Color.Gray)
+            Text(
+                "${numberFormat.format(item.price)}đ x ${item.quantity}",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
         }
 
-        Text("${numberFormat.format(item.price * item.quantity)}đ")
+        Text(
+            "${numberFormat.format(item.price * item.quantity)}đ",
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 
@@ -281,11 +307,11 @@ fun AdminInfoRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, color = Color(0xFF555555))
-        Text(value, color = Color.Black)
+        Text(label, color = Color.Gray)
+        Text(value, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -293,12 +319,6 @@ private fun updateOrderStatus(orderId: String, newStatus: AdminOrderStatus) {
     FirebaseFirestore.getInstance().collection("orders")
         .document(orderId)
         .update("status", newStatus.name)
-        .addOnSuccessListener {
-            // Có thể thêm thông báo thành công
-        }
-        .addOnFailureListener {
-            // Xử lý lỗi
-        }
 }
 
 data class AdminOrder(
@@ -314,20 +334,20 @@ data class AdminOrder(
 )
 
 enum class AdminOrderStatus {
-    PENDING,    // Chờ duyệt
-    APPROVED,   // Đã duyệt
-    REJECTED,   // Từ chối
-    DELIVERED   // Đã giao
+    PENDING,
+    APPROVED,
+    REJECTED,
+    DELIVERED
 }
 
 @Composable
 fun QuanLyDonHangTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = Color(0xFF0077B6),
-            secondary = Color(0xFF023E8A),
-            background = Color(0xFFF5F5F5)
+            primary = GreenPrimary,
+            secondary = GreenDark,
+            background = BackgroundSoft
         ),
         content = content
     )
-}//
+}

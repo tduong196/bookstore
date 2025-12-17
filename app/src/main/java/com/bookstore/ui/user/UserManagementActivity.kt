@@ -21,6 +21,13 @@ import androidx.compose.ui.unit.sp
 import com.bookstore.ui.theme.BookstoreTheme
 import com.google.firebase.firestore.FirebaseFirestore
 
+/* ===== UI COLORS (CHỈ HIỂN THỊ) ===== */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val AdminColor = Color(0xFF2E7D32)
+
 class UserManagementActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,7 +62,7 @@ fun UserManagementScreen(onBack: () -> Unit) {
                         email = email,
                         role = role
                     )
-                }.sortedBy { it.role } // Sắp xếp: User (1) lên trước Admin (2)
+                }.sortedBy { it.role }
                 danhSachNguoiDung = nguoiDungList
             }
     }
@@ -67,61 +74,99 @@ fun UserManagementScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Quản lý Người Dùng") },
+                title = {
+                    Text(
+                        "Quản lý Người dùng",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Quay lại")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Quay lại"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color(0xFF0077B6),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = CardColor,
+                    titleContentColor = GreenDark,
+                    navigationIconContentColor = GreenDark
                 )
             )
         }
     ) { padding ->
-        Column( modifier = Modifier
-            .padding(padding)
-            .fillMaxSize()
-            .background(Color(0xFFE3F2FD))
-            .padding(16.dp)) {
+
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(BackgroundSoft)
+                .padding(16.dp)
+        ) {
+
             LazyColumn {
                 items(danhSachNguoiDung) { nguoiDung ->
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardColor),
+                        elevation = CardDefaults.cardElevation(6.dp)
                     ) {
+
                         Column(modifier = Modifier.padding(16.dp)) {
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+
                                 Column {
-                                    Text(text = nguoiDung.name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                    Text(text = nguoiDung.email, fontSize = 14.sp, color = Color.Gray)
+                                    Text(
+                                        text = nguoiDung.name,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        color = GreenDark
+                                    )
+                                    Text(
+                                        text = nguoiDung.email,
+                                        fontSize = 14.sp,
+                                        color = Color.Gray
+                                    )
                                 }
-                                Text(
-                                    text = if (nguoiDung.role == 2) "Admin" else "User",
-                                    color = if (nguoiDung.role == 2) Color(0xFF1565C0) else Color.Gray,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.align(Alignment.CenterVertically)
-                                )
+
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = if (nguoiDung.role == 2)
+                                        AdminColor.copy(alpha = 0.15f)
+                                    else
+                                        Color.Gray.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = if (nguoiDung.role == 2) "Admin" else "User",
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (nguoiDung.role == 2) AdminColor else Color.Gray
+                                    )
+                                }
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                // Chỉ xóa nếu không phải admin
+
                                 if (nguoiDung.role != 2) {
                                     Button(
                                         onClick = { userToDelete = nguoiDung },
+                                        shape = RoundedCornerShape(14.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                                     ) {
                                         Text("Xóa", color = Color.White)
@@ -130,18 +175,20 @@ fun UserManagementScreen(onBack: () -> Unit) {
                                     Spacer(modifier = Modifier.width(100.dp))
                                 }
 
-                                // Cấp quyền admin nếu chưa là admin
                                 if (nguoiDung.role != 2) {
-                                    Button(
+                                    OutlinedButton(
                                         onClick = {
                                             db.collection("users")
                                                 .document(nguoiDung.id)
                                                 .update("role", 2)
                                                 .addOnSuccessListener { loadUsers() }
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = GreenPrimary
+                                        )
                                     ) {
-                                        Text("Cấp quyền admin", color = Color.White)
+                                        Text("Cấp quyền admin")
                                     }
                                 }
                             }
@@ -152,12 +199,18 @@ fun UserManagementScreen(onBack: () -> Unit) {
         }
     }
 
-    // Dialog xác nhận xóa
     if (userToDelete != null) {
         AlertDialog(
             onDismissRequest = { userToDelete = null },
-            title = { Text("Xác nhận xóa") },
-            text = { Text("Bạn có chắc chắn muốn xóa người dùng này không?") },
+            title = {
+                Text(
+                    "Xác nhận xóa",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text("Bạn có chắc chắn muốn xóa người dùng này không?")
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -168,13 +221,14 @@ fun UserManagementScreen(onBack: () -> Unit) {
                                 userToDelete = null
                                 loadUsers()
                             }
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
-                    Text("Xóa")
+                    Text("Xóa", color = Color.White)
                 }
             },
             dismissButton = {
-                Button(onClick = { userToDelete = null }) {
+                TextButton(onClick = { userToDelete = null }) {
                     Text("Hủy")
                 }
             }

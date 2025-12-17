@@ -34,6 +34,16 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
+/* ===== UI COLORS (CHỈ HIỂN THỊ) ===== */
+private val GreenPrimary = Color(0xFF5B7F6A)
+private val GreenDark = Color(0xFF3F5D4A)
+private val BackgroundSoft = Color(0xFFF5F7F4)
+private val CardColor = Color(0xFFFDFCFB)
+private val PendingColor = Color(0xFFFFA000)
+private val ApprovedColor = Color(0xFF2E7D32)
+private val RejectedColor = Color(0xFFC62828)
+private val DeliveredColor = Color(0xFF1565C0)
+
 class UserOrderHistoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,12 +63,10 @@ fun UserOrderHistoryScreen() {
     var isLoading by remember { mutableStateOf(true) }
     var refreshTrigger by remember { mutableIntStateOf(0) }
 
-    // Activity Result Launcher for ReviewActivity
     val reviewLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Đánh giá thành công, refresh dữ liệu
             refreshTrigger++
         }
     }
@@ -70,10 +78,7 @@ fun UserOrderHistoryScreen() {
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener { snapshot, error ->
                     isLoading = false
-                    if (error != null) {
-                        android.util.Log.e("OrderHistory", "Error loading orders", error)
-                        return@addSnapshotListener
-                    }
+                    if (error != null) return@addSnapshotListener
 
                     orders = snapshot?.documents?.mapNotNull { doc ->
                         try {
@@ -107,15 +112,9 @@ fun UserOrderHistoryScreen() {
                                 reviewed = doc.getBoolean("reviewed") ?: false
                             )
                         } catch (e: Exception) {
-                            android.util.Log.e("OrderHistory", "Error parsing order ${doc.id}", e)
                             null
                         }
                     } ?: emptyList()
-
-                    android.util.Log.d("OrderHistory", "Loaded ${orders.size} orders")
-                    orders.forEach { order ->
-                        android.util.Log.d("OrderHistory", "Order ${order.id}: status=${order.status}, reviewed=${order.reviewed}, items=${order.items.size}")
-                    }
                 }
         }
     }
@@ -123,52 +122,54 @@ fun UserOrderHistoryScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(BackgroundSoft)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
-            Surface(
+
+            /* ===== HEADER ===== */
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 2.dp
+                colors = CardDefaults.cardColors(containerColor = CardColor),
+                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
+                elevation = CardDefaults.cardElevation(6.dp)
             ) {
                 Text(
                     text = "Đơn hàng của tôi",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GreenDark,
                     modifier = Modifier.padding(24.dp)
                 )
             }
 
-            if (isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color(0xFF546E7A))
+            when {
+                isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = GreenPrimary)
+                    }
                 }
-            } else if (orders.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Bạn chưa có đơn hàng nào",
-                        color = Color.Gray
-                    )
+
+                orders.isEmpty() -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Bạn chưa có đơn hàng nào", color = Color.Gray)
+                    }
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(orders) { order ->
-                        UserOrderCard(
-                            order = order,
-                            reviewLauncher = reviewLauncher
-                        )
+
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(orders) { order ->
+                            UserOrderCard(order = order, reviewLauncher = reviewLauncher)
+                        }
                     }
                 }
             }
@@ -187,18 +188,13 @@ fun UserOrderCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Header with status
+        Column(modifier = Modifier.padding(16.dp)) {
+
+            /* ===== HEADER ===== */
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -207,13 +203,13 @@ fun UserOrderCard(
                 Column {
                     Text(
                         "Đơn hàng #${order.id.take(8)}",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GreenDark
                     )
                     Text(
                         formatTimestamp(order.timestamp),
-                        style = MaterialTheme.typography.bodySmall,
+                        fontSize = 12.sp,
                         color = Color.Gray
                     )
                 }
@@ -223,7 +219,6 @@ fun UserOrderCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Order items
             order.items.take(if (expanded) order.items.size else 1).forEach { item ->
                 Row(
                     modifier = Modifier
@@ -236,32 +231,20 @@ fun UserOrderCard(
                         contentDescription = item.title,
                         modifier = Modifier
                             .size(60.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFFF5F5F5))
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFF0F0F0))
                     )
 
                     Spacer(modifier = Modifier.width(12.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            item.title,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium
-                            ),
-                            maxLines = 2
-                        )
-                        Text(
-                            "x${item.quantity}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
+                        Text(item.title, fontWeight = FontWeight.Medium)
+                        Text("x${item.quantity}", fontSize = 12.sp, color = Color.Gray)
                     }
 
                     Text(
                         "${numberFormat.format(item.price * item.quantity)}đ",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -273,58 +256,36 @@ fun UserOrderCard(
             }
 
             if (expanded) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    thickness = DividerDefaults.Thickness,
-                    color = DividerDefaults.color
-                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                Text(
-                    "Thông tin giao hàng",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
+                Text("Thông tin giao hàng", fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(6.dp))
                 UserInfoRow("Số điện thoại:", order.phone)
                 UserInfoRow("Địa chỉ:", order.address)
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                thickness = DividerDefaults.Thickness,
-                color = DividerDefaults.color
-            )
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-            // Total and actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(
-                        "Tổng tiền",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
+                    Text("Tổng tiền", fontSize = 12.sp, color = Color.Gray)
                     Text(
                         "${numberFormat.format(order.items.sumOf { it.price * it.quantity })}đ",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = Color(0xFF546E7A)
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GreenPrimary
                     )
                 }
 
-                // Review button for approved/delivered orders
                 if ((order.status == UserOrderStatus.APPROVED || order.status == UserOrderStatus.DELIVERED)
-                    && !order.reviewed) {
+                    && !order.reviewed
+                ) {
                     Button(
                         onClick = {
-                            // Cho phép đánh giá sản phẩm đầu tiên trong đơn
                             if (order.items.isNotEmpty()) {
                                 val firstItem = order.items[0]
                                 val intent = Intent(context, ReviewActivity::class.java).apply {
@@ -336,34 +297,19 @@ fun UserOrderCard(
                                 reviewLauncher.launch(intent)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF546E7A)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.RateReview,
-                            contentDescription = "Review",
+                            contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text("Đánh giá")
                     }
                 } else if (order.reviewed) {
-                    Chip(
-                        text = "Đã đánh giá",
-                        color = Color(0xFF4CAF50)
-                    )
-                }
-            }
-
-            if (!expanded && order.items.size > 1) {
-                Spacer(modifier = Modifier.height(8.dp))
-                TextButton(
-                    onClick = { expanded = true },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text("Chi tiết đơn hàng")
+                    StatusChip("Đã đánh giá", ApprovedColor)
                 }
             }
         }
@@ -373,62 +319,41 @@ fun UserOrderCard(
 @Composable
 fun UserOrderStatusBadge(status: UserOrderStatus) {
     val (text, color) = when (status) {
-        UserOrderStatus.PENDING -> "Chờ duyệt" to Color(0xFFFFA500)
-        UserOrderStatus.APPROVED -> "Đã duyệt" to Color(0xFF4CAF50)
-        UserOrderStatus.REJECTED -> "Đã hủy" to Color(0xFFF44336)
-        UserOrderStatus.DELIVERED -> "Đã giao" to Color(0xFF2196F3)
+        UserOrderStatus.PENDING -> "Chờ duyệt" to PendingColor
+        UserOrderStatus.APPROVED -> "Đã duyệt" to ApprovedColor
+        UserOrderStatus.REJECTED -> "Đã hủy" to RejectedColor
+        UserOrderStatus.DELIVERED -> "Đã giao" to DeliveredColor
     }
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(999.dp))
             .background(color.copy(alpha = 0.15f))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Text(
-            text = text,
-            color = color,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-fun Chip(text: String, color: Color) {
+fun StatusChip(text: String, color: Color) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(999.dp))
             .background(color.copy(alpha = 0.15f))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Text(
-            text = text,
-            color = color,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+        Text(text, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
 fun UserInfoRow(label: String, value: String) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Gray,
-            modifier = Modifier.width(120.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF212121)
-        )
+        Text(label, modifier = Modifier.width(120.dp), fontSize = 12.sp, color = Color.Gray)
+        Text(value, fontSize = 12.sp, color = Color(0xFF212121))
     }
 }
 
@@ -465,4 +390,3 @@ enum class UserOrderStatus {
     REJECTED,
     DELIVERED
 }
-
