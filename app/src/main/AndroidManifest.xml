@@ -29,9 +29,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ui.note.NoteActivity" />
         <activity android:name=".ui.payment.PaymentMethodActivity" />
-        <activity android:name=".ui.note.NoteEditorActivity" />
         <activity android:name=".ui.home.HomeActivity" />
         <activity android:name=".ui.book.BookDetailActivity" />
         <activity android:name=".ui.book.AddBookActivity" />
