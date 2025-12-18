@@ -152,25 +152,8 @@ fun MyReviewCard(review: Review) {
                     text = review.bookTitle,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = GreenDark,
-                    modifier = Modifier.weight(1f)
+                    color = GreenDark
                 )
-
-                Surface(
-                    color = if (review.approved)
-                        ApprovedColor.copy(alpha = 0.15f)
-                    else
-                        PendingColor.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(999.dp)
-                ) {
-                    Text(
-                        text = if (review.approved) "Đã duyệt" else "Chờ duyệt",
-                        color = if (review.approved) ApprovedColor else PendingColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

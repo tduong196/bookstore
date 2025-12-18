@@ -10,7 +10,6 @@ data class Review(
     var bookTitle: String = "",
     var rating: Double = 0.0,
     var comment: String = "",
-    var timestamp: Long = System.currentTimeMillis(),
-    var approved: Boolean = false
+    var timestamp: Long = System.currentTimeMillis()
 )
 

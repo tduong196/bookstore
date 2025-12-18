@@ -51,28 +51,18 @@ fun ReviewManagementScreen() {
     val db = FirebaseFirestore.getInstance()
     var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    var selectedTab by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(selectedTab) {
-        isLoading = true
-        val query = if (selectedTab == 0) {
-            db.collection("reviews")
-                .whereEqualTo("approved", false)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-        } else {
-            db.collection("reviews")
-                .whereEqualTo("approved", true)
-                .orderBy("timestamp", Query.Direction.DESCENDING)
-        }
+    LaunchedEffect(Unit) {
+        db.collection("reviews")
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                isLoading = false
+                if (error != null) return@addSnapshotListener
 
-        query.addSnapshotListener { snapshot, error ->
-            isLoading = false
-            if (error != null) return@addSnapshotListener
-
-            reviews = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(Review::class.java)?.copy(id = doc.id)
-            } ?: emptyList()
-        }
+                reviews = snapshot?.documents?.mapNotNull { doc ->
+                    doc.toObject(Review::class.java)?.copy(id = doc.id)
+                } ?: emptyList()
+            }
     }
 
     Box(
@@ -82,7 +72,7 @@ fun ReviewManagementScreen() {
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            /* ===== HEADER + TABS ===== */
+            /* ===== HEADER ===== */
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardColor),
@@ -98,29 +88,12 @@ fun ReviewManagementScreen() {
                         color = GreenDark,
                         modifier = Modifier.padding(24.dp)
                     )
-
-                    TabRow(
-                        selectedTabIndex = selectedTab,
-                        containerColor = CardColor,
-                        contentColor = GreenPrimary,
-                        indicator = { tabPositions ->
-                            TabRowDefaults.Indicator(
-                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                                color = GreenPrimary
-                            )
-                        }
-                    ) {
-                        Tab(
-                            selected = selectedTab == 0,
-                            onClick = { selectedTab = 0 },
-                            text = { Text("Chờ duyệt") }
-                        )
-                        Tab(
-                            selected = selectedTab == 1,
-                            onClick = { selectedTab = 1 },
-                            text = { Text("Đã duyệt") }
-                        )
-                    }
+                    Text(
+                        text = "Tổng số: ${reviews.size} đánh giá",
+                        color = Color.Gray,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 0.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
@@ -140,10 +113,7 @@ fun ReviewManagementScreen() {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (selectedTab == 0)
-                                "Không có đánh giá nào chờ duyệt"
-                            else
-                                "Chưa có đánh giá nào được duyệt",
+                            text = "Chưa có đánh giá nào",
                             color = Color.Gray
                         )
                     }
@@ -158,16 +128,11 @@ fun ReviewManagementScreen() {
                         items(reviews) { review ->
                             ReviewCard(
                                 review = review,
-                                showActions = selectedTab == 0,
-                                onApprove = {
-                                    db.collection("reviews").document(review.id)
-                                        .update("approved", true)
+                                onDelete = {
+                                    db.collection("reviews").document(review.id).delete()
                                         .addOnSuccessListener {
                                             updateBookRating(db, review.bookId)
                                         }
-                                },
-                                onReject = {
-                                    db.collection("reviews").document(review.id).delete()
                                 }
                             )
                         }
@@ -181,9 +146,7 @@ fun ReviewManagementScreen() {
 @Composable
 fun ReviewCard(
     review: Review,
-    showActions: Boolean,
-    onApprove: () -> Unit,
-    onReject: () -> Unit
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -238,37 +201,22 @@ fun ReviewCard(
                 color = Color(0xFF424242)
             )
 
-            if (showActions) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                OutlinedButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = RejectColor
+                    ),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = onReject,
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = RejectColor
-                        ),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(Icons.Default.Close, null)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Từ chối")
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Button(
-                        onClick = onApprove,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ApproveColor
-                        ),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(Icons.Default.Check, null)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Duyệt")
-                    }
+                    Icon(Icons.Default.Close, null)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Xóa")
                 }
             }
         }
@@ -284,7 +232,6 @@ private fun formatTimestamp(timestamp: Long): String {
 private fun updateBookRating(db: FirebaseFirestore, bookId: String) {
     db.collection("reviews")
         .whereEqualTo("bookId", bookId)
-        .whereEqualTo("approved", true)
         .get()
         .addOnSuccessListener { snapshot ->
             val reviews = snapshot.documents.mapNotNull {

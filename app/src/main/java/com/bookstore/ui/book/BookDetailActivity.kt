@@ -102,6 +102,7 @@ fun BookDetailScreen(
                 if (!snapshot.isEmpty) {
                     bookId = snapshot.documents[0].id
 
+                    // Load all reviews immediately
                     db.collection("reviews")
                         .whereEqualTo("bookId", bookId)
                         .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -181,6 +182,8 @@ fun BookDetailScreen(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("%.2f".format(rating))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("(${reviewList.size} đánh giá)", color = Color.Gray, fontSize = 14.sp)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -327,8 +330,49 @@ fun ReviewTab(reviews: List<Review>) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
+        // Header with review count
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Tất cả đánh giá",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = GreenDark
+            )
+            Text(
+                "${reviews.size} đánh giá",
+                color = Color.Gray,
+                fontSize = 14.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         if (reviews.isEmpty()) {
-            Text("Chưa có đánh giá nào", color = Color.Gray)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = StarInactive,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Chưa có đánh giá nào",
+                        color = Color.Gray,
+                        fontSize = 16.sp
+                    )
+                }
+            }
         } else {
             reviews.forEach { r ->
                 Card(
@@ -336,21 +380,30 @@ fun ReviewTab(reviews: List<Review>) {
                         .fillMaxWidth()
                         .padding(vertical = 6.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardColor)
+                    colors = CardDefaults.cardColors(containerColor = CardColor),
+                    elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(r.userName, fontWeight = FontWeight.Bold)
-                        Row {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             repeat(5) { i ->
                                 Icon(
                                     Icons.Filled.Star,
                                     contentDescription = null,
-                                    tint = if (i < r.rating.toInt()) StarActive else StarInactive
+                                    tint = if (i < r.rating.toInt()) StarActive else StarInactive,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "%.2f".format(r.rating),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(r.comment)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(r.comment, color = Color(0xFF424242))
                     }
                 }
             }

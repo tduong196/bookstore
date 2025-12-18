@@ -258,8 +258,7 @@ fun ReviewScreen(
                             bookTitle = bookTitle,
                             rating = rating.toDouble(),
                             comment = comment,
-                            timestamp = System.currentTimeMillis(),
-                            approved = true
+                            timestamp = System.currentTimeMillis()
                         )
 
                         db.collection("reviews")
