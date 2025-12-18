@@ -1,11 +1,14 @@
 package com.bookstore.ui.cart
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -64,6 +67,18 @@ fun CartScreen() {
     var address by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var isFirestoreLoaded by remember { mutableStateOf(false) }
+    var selectedPaymentMethod by remember { mutableStateOf("Chưa chọn") }
+
+    val paymentMethodLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val paymentMethod = result.data?.getStringExtra("payment_method")
+            if (paymentMethod != null) {
+                selectedPaymentMethod = paymentMethod
+            }
+        }
+    }
 
     LaunchedEffect(true) {
         Firebase.firestore.collection("books")
@@ -123,7 +138,12 @@ fun CartScreen() {
             }
 
             item {
-                CheckoutOptionsSection()
+                CheckoutOptionsSection(
+                    selectedPaymentMethod = selectedPaymentMethod,
+                    onPaymentMethodClick = {
+                        paymentMethodLauncher.launch(Intent(context, PaymentMethodActivity::class.java))
+                    }
+                )
                 Spacer(Modifier.height(16.dp))
 
                 /* ADDRESS */
@@ -182,12 +202,17 @@ fun CartScreen() {
                     Toast.makeText(context, "Vui lòng nhập địa chỉ giao hàng", Toast.LENGTH_SHORT).show()
                     return@CheckoutSummaryUI
                 }
+                if (selectedPaymentMethod == "Chưa chọn") {
+                    Toast.makeText(context, "Vui lòng chọn phương thức thanh toán", Toast.LENGTH_SHORT).show()
+                    return@CheckoutSummaryUI
+                }
 
                 val orderData = mapOf(
                     "userId" to user?.uid,
                     "userEmail" to user?.email,
                     "phone" to phone,
                     "address" to address,
+                    "paymentMethod" to selectedPaymentMethod,
                     "items" to updatedCartItems.map {
                         mapOf(
                             "bookId" to it.id,
@@ -337,16 +362,16 @@ fun QuantityButton(text: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun CheckoutOptionsSection() {
-    val context = LocalContext.current
+fun CheckoutOptionsSection(
+    selectedPaymentMethod: String,
+    onPaymentMethodClick: () -> Unit
+) {
     Card(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = CardColor)
     ) {
         Column(Modifier.padding(12.dp)) {
-            CheckoutOption("Phương thức thanh toán", "Chưa chọn") {
-                context.startActivity(Intent(context, PaymentMethodActivity::class.java))
-            }
+            CheckoutOption("Phương thức thanh toán", selectedPaymentMethod, onPaymentMethodClick)
             Divider(Modifier.padding(vertical = 8.dp))
             CheckoutOption("Khuyến mãi", "Chưa áp dụng") {}
         }

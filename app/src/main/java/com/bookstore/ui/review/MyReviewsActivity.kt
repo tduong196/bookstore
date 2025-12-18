@@ -197,7 +197,7 @@ fun MyReviewCard(review: Review) {
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = review.rating.toString(),
+                    text = "%.2f".format(review.rating),
                     fontWeight = FontWeight.Medium
                 )
             }

@@ -180,7 +180,7 @@ fun BookDetailScreen(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(rating.toString())
+                    Text("%.2f".format(rating))
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

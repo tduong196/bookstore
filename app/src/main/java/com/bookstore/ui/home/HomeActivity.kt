@@ -476,7 +476,7 @@ class HomeActivity : ComponentActivity() {
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(Modifier.width(4.dp))
-                            Text(book.rating.toString(), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("%.2f".format(book.rating), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

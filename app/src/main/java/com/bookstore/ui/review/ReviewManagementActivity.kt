@@ -228,7 +228,7 @@ fun ReviewCard(
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(review.rating.toString(), fontWeight = FontWeight.Medium)
+                Text("%.2f".format(review.rating), fontWeight = FontWeight.Medium)
             }
 
             Spacer(modifier = Modifier.height(12.dp))

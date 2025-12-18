@@ -1,5 +1,7 @@
 package com.bookstore.ui.payment
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,7 +30,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 
 
 class PaymentMethodActivity : ComponentActivity(){
@@ -45,6 +49,8 @@ class PaymentMethodActivity : ComponentActivity(){
 }
 @Composable
 fun PaymentMethodScreen() {
+    val context = LocalContext.current
+    val activity = context as? Activity
     val paymentOptions = listOf(
         PaymentMethod("Thanh toán tiền mặt", "Thanh toán khi nhận hàng", Icons.Default.Money),
         PaymentMethod("Credit or debit card", "Thẻ Visa hoặc Mastercard", Icons.Default.CreditCard),
@@ -61,7 +67,7 @@ fun PaymentMethodScreen() {
         Text("Phương thức thanh toán", fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Spacer(modifier = Modifier.height(12.dp))
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier.weight(1f)) {
             itemsIndexed(paymentOptions) { index, method ->
                 Row(
                     modifier = Modifier
@@ -87,6 +93,28 @@ fun PaymentMethodScreen() {
                     )
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = {
+                if (selectedOption != -1) {
+                    val intent = Intent().apply {
+                        putExtra("payment_method", paymentOptions[selectedOption].title)
+                    }
+                    activity?.setResult(Activity.RESULT_OK, intent)
+                    activity?.finish()
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            enabled = selectedOption != -1,
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0066CC))
+        ) {
+            Text("Xác nhận", fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }

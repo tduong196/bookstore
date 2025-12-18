@@ -246,7 +246,7 @@ suspend fun callGroqAPIWithBooks(prompt: String, books: List<Book>): String {
                     appendLine("   Thể loại: ${book.category}")
                     appendLine("   Mô tả: ${book.description}")
                     appendLine("   Giá: ${formatter.format(book.price)}")
-                    appendLine("   Đánh giá: ${book.rating}/5.0")
+                    appendLine("   Đánh giá: ${"%.2f".format(book.rating)}/5.0")
                     appendLine("   Số lượng còn: ${book.quantity}")
                 }
             }
