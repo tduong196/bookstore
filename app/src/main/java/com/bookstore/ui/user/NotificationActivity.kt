@@ -1,5 +1,6 @@
 package com.bookstore.ui.user
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,10 +20,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.bookstore.ui.home.HomeActivity
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.text.NumberFormat
@@ -41,6 +44,7 @@ class NotificationActivity : ComponentActivity() {
 
 @Composable
 fun OrderHistoryScreen() {
+    val context = LocalContext.current
     val currentUser = FirebaseAuth.getInstance().currentUser
     var orders by remember { mutableStateOf<List<Order>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -62,7 +66,7 @@ fun OrderHistoryScreen() {
                         val statusString = doc.getString("status") ?: "PENDING"
                         val status = try {
                             OrderStatus.valueOf(statusString)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             OrderStatus.PENDING
                         }
                         order?.copy(id = doc.id, status = status)
@@ -79,21 +83,63 @@ fun OrderHistoryScreen() {
     ) {
         when {
             isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            orders.isEmpty() -> Text(
-                "Bạn chưa có đơn hàng nào",
+            orders.isEmpty() -> Column(
                 modifier = Modifier.align(Alignment.Center),
-                color = Color.Gray
-            )
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "Bạn chưa có đơn hàng nào",
+                    color = Color.Gray
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = {
+                        val intent = Intent(context, HomeActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                        (context as? ComponentActivity)?.finish()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0077B6)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Về trang chủ")
+                }
+            }
             else -> {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(16.dp)
+                        .padding(bottom = 80.dp)
                 ) {
                     items(orders) { order ->
                         OrderCard(order = order)
                         Spacer(modifier = Modifier.height(16.dp))
                     }
+                }
+
+                // Nút quay về trang chủ ở dưới cùng
+                Button(
+                    onClick = {
+                        val intent = Intent(context, HomeActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                        (context as? ComponentActivity)?.finish()
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0077B6)),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = ButtonDefaults.buttonElevation(8.dp)
+                ) {
+                    Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(24.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Về trang chủ", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -102,22 +102,67 @@ fun BookDetailScreen(
                 if (!snapshot.isEmpty) {
                     bookId = snapshot.documents[0].id
 
-                    // Load all reviews immediately
+                    // Load all reviews immediately with proper error handling
+                    // Try with orderBy first
                     db.collection("reviews")
                         .whereEqualTo("bookId", bookId)
                         .orderBy("timestamp", Query.Direction.DESCENDING)
-                        .addSnapshotListener { rs, _ ->
-                            rs?.let {
-                                reviewList.clear()
-                                reviewList.addAll(
-                                    it.documents.mapNotNull { d ->
-                                        d.toObject(Review::class.java)
+                        .get()
+                        .addOnSuccessListener { reviewSnapshot ->
+                            reviewList.clear()
+                            reviewList.addAll(
+                                reviewSnapshot.documents.mapNotNull { d ->
+                                    d.toObject(Review::class.java)?.copy(id = d.id)
+                                }
+                            )
+                        }
+                        .addOnFailureListener { e ->
+                            // Fallback: query without orderBy if index doesn't exist
+                            db.collection("reviews")
+                                .whereEqualTo("bookId", bookId)
+                                .get()
+                                .addOnSuccessListener { reviewSnapshot ->
+                                    reviewList.clear()
+                                    val reviews = reviewSnapshot.documents.mapNotNull { d ->
+                                        d.toObject(Review::class.java)?.copy(id = d.id)
                                     }
-                                )
-                            }
+                                    // Sort manually by timestamp descending
+                                    reviewList.addAll(reviews.sortedByDescending { it.timestamp })
+                                }
+                                .addOnFailureListener { fallbackError ->
+                                    Toast.makeText(context, "Lỗi tải đánh giá: ${fallbackError.message}", Toast.LENGTH_SHORT).show()
+                                }
                         }
                 }
             }
+            .addOnFailureListener { e ->
+                Toast.makeText(context, "Lỗi tải thông tin sách: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    // Listen for real-time updates to reviews
+    DisposableEffect(bookId) {
+        if (bookId.isNotEmpty()) {
+            // Try with orderBy first
+            val listener = db.collection("reviews")
+                .whereEqualTo("bookId", bookId)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        return@addSnapshotListener
+                    }
+                    snapshot?.let {
+                        reviewList.clear()
+                        val reviews = it.documents.mapNotNull { d ->
+                            d.toObject(Review::class.java)?.copy(id = d.id)
+                        }
+                        // Sort manually by timestamp descending
+                        reviewList.addAll(reviews.sortedByDescending { it.timestamp })
+                    }
+                }
+            onDispose { listener.remove() }
+        } else {
+            onDispose { }
+        }
     }
 
     DisposableEffect(title) {

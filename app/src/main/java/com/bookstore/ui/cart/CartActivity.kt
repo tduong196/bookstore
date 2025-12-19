@@ -3,7 +3,6 @@ package com.bookstore.ui.cart
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -230,10 +229,16 @@ fun CartScreen() {
                     .add(orderData)
                     .addOnSuccessListener {
                         CartManager.clearCart(context)
+                        Toast.makeText(context, "Đặt hàng thành công!", Toast.LENGTH_SHORT).show()
                         context.startActivity(
                             Intent(context, NotificationActivity::class.java)
                                 .putExtra("orderId", it.id)
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
                         )
+                        (context as? Activity)?.finish()
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(context, "Đặt hàng thất bại: ${it.message}", Toast.LENGTH_LONG).show()
                     }
             }
         )
@@ -372,7 +377,7 @@ fun CheckoutOptionsSection(
     ) {
         Column(Modifier.padding(12.dp)) {
             CheckoutOption("Phương thức thanh toán", selectedPaymentMethod, onPaymentMethodClick)
-            Divider(Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
             CheckoutOption("Khuyến mãi", "Chưa áp dụng") {}
         }
     }
